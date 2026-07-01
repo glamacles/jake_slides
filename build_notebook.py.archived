@@ -1,0 +1,569 @@
+"""Generate the UDE glaciology lecture notebook (nbformat).
+
+Run:  uv run python build_notebook.py
+Then: uv run jupyter nbconvert --to notebook --execute --inplace UDE_glaciology_lecture.ipynb
+"""
+import nbformat as nbf
+
+nb = nbf.v4.new_notebook()
+cells = []
+def md(t): cells.append(nbf.v4.new_markdown_cell(t.strip("\n")))
+def code(t): cells.append(nbf.v4.new_code_cell(t.strip("\n")))
+
+# ===========================================================================
+md(r"""
+# Universal Differential Equations for Glaciology
+### Learning the hidden physics of ice flow with differentiable programming
+
+*Glaciology & Machine Learning Summer School*  ·  ~1–1.5 h  ·  runs on a laptop CPU
+
+---
+
+**The one idea:** keep the physics you trust, and let a neural network *learn the part you don't* —
+then fit it by differentiating through the ice-flow solver.
+
+**You will be able to:**
+- Say what a Universal Differential Equation (UDE) is, and where it sits between physics and ML.
+- Explain (without prior ML) what a neural network and "training" are, and why automatic
+  differentiation is the key enabler.
+- Build and train a UDE that recovers Glen's creep parameter $A(T)$ from velocity data — live, in
+  about half a minute.
+- Connect the toy to the real thing: Bolibar et al. (2023) and [ODINN.jl](https://github.com/ODINN-SciML/ODINN.jl).
+
+> 🎯 **Audience.** Strong analytical/physics background, ML *not* assumed. We build the ML ideas
+> from scratch.
+
+> 📓 **Companion notebooks (optional).** `AD_and_adjoints_concepts.ipynb` digs into *why*
+> reverse-mode AD is the adjoint method; the numerical deep-dive notebook collects the gnarly
+> solver experiments. Neither is needed to follow this lecture.
+""")
+
+# ---------------------------------------------------------------------------
+md(r"""
+### Roadmap
+
+| § | Topic |
+|---|-------|
+| 1 | Why UDEs? — the gap between physics and data-driven models |
+| 2 | Glacier physics — the Shallow Ice Approximation: known vs. unknown |
+| 3 | A 5-minute ML primer (neural nets, training, automatic differentiation) |
+| 4 | The UDE idea — and differentiating *through* the solver |
+| 5 | **Worked example** — recover $A(T)$ from velocities (live) |
+| 6 | The real thing — Bolibar et al. (2023) / ODINN.jl |
+| 7 | Pitfalls & frontier |
+| 8 | Exercises · 9 References |
+""")
+
+code(r"""
+import jax, jax.numpy as jnp, numpy as np
+import diffrax as dfx, equinox as eqx, optax, optimistix as optx
+import matplotlib.pyplot as plt
+import time
+
+jax.config.update("jax_enable_x64", True)   # ice flow is stiff -> use 64-bit floats
+plt.rcParams.update({"figure.dpi": 110, "font.size": 11, "axes.grid": True,
+                     "grid.alpha": 0.3, "axes.spines.top": False, "axes.spines.right": False})
+print("jax", jax.__version__, "| diffrax", dfx.__version__, "|", jax.devices())
+""")
+
+# ===========================================================================
+md(r"""
+## 1 · Why universal differential equations?
+
+Two ways to model the world, each with a fatal flaw for glaciology:
+
+- **Physics models (white box)** — derived from conservation laws. Interpretable and they
+  extrapolate, *but* only as good as their weakest assumption. Many processes hide **empirical
+  closures** we don't actually know.
+- **Machine-learning models (black box)** — fit almost anything, *but* are data-hungry, don't
+  extrapolate, ignore known physics, and are hard to interpret.
+
+Glaciology lives in the middle:
+
+> 💡 **The key observation.** We *trust* the conservation laws (mass, momentum). We are *unsure*
+> about the constitutive closures — how ice deforms (Glen's law), how it slides, how mass balance
+> depends on climate.
+
+A **Universal Differential Equation (UDE)** keeps the trusted structure and replaces *only the
+uncertain closure* with a learnable function $\mathcal{U}_\theta$ (a small neural network):
+
+$$\frac{du}{dt} = f\big(u, t,\; \mathcal{U}_\theta(u,t)\big).$$
+
+We fit $\theta$ so the *solution* matches observations. Because we infer a whole **function**, this
+is **functional inversion** — and it lets us *discover* empirical laws from data while staying
+inside a physically consistent model (Rackauckas et al., 2020; Bolibar et al., 2023).
+""")
+
+# ===========================================================================
+md(r"""
+## 2 · A little glacier physics: the Shallow Ice Approximation
+
+Glaciers are thin relative to their length, so ice flow reduces to a **nonlinear diffusion
+equation** for the thickness $H(x,t)$ on a flowline:
+
+> 🧊 **The SIA (mass conservation):**
+> $$\frac{\partial H}{\partial t} = \dot b + \frac{\partial}{\partial x}\!\left(D\,\frac{\partial S}{\partial x}\right),
+> \qquad D = \Gamma\,H^{\,n+2}\Big|\frac{\partial S}{\partial x}\Big|^{\,n-1},
+> \qquad \Gamma = \frac{2A}{n+2}(\rho g)^n.$$
+
+- $\dot b$ — climatic mass balance (snowfall − melt)
+- $S = b + H$ — surface elevation ($b$ = bedrock)
+- $D$ — effective diffusivity from ice deformation
+
+The observable surface velocity follows from the same physics:
+$\;u_s = \dfrac{2A}{n+1}(\rho g)^n H^{\,n+1}\big|\partial_x S\big|^{\,n}.$
+
+### Known vs. unknown
+
+| Trusted (white box) | Uncertain (the closure to learn) |
+|---|---|
+| Mass conservation | **Glen's creep parameter $A$** — ice "softness" |
+| The $H^{n+2}$, $\lvert\partial_x S\rvert^{n-1}$ structure of $D$ | the exponent $n$ (≈3, really 1.5–4.2) |
+| Driving stress $\propto \rho g H\,\partial_x S$ | basal **sliding** (set to zero here) |
+
+> 📌 **Our target.** $A$ depends on temperature, water content, and fabric (Cuffey & Paterson,
+> 2010): warmer ice is *softer* (larger $A$). In practice $A$ is a tuned constant — but it should be
+> a *function* of climate. **That function is what we will learn.**
+""")
+
+# ===========================================================================
+md(r"""
+## 3 · A five-minute ML primer (for people who know calculus)
+
+Three ideas, no prior ML needed.
+
+- **A neural network is a flexible parametric function.** It alternates affine maps with a
+  nonlinearity $\sigma$:
+  $\;\mathcal{U}_\theta(x) = W_L\,\sigma(\cdots\sigma(W_1 x + b_1)\cdots)+b_L.$
+  The *universal approximation theorem* says it can approximate any continuous function — think of it
+  as "function-shaped clay" with knobs $\theta$.
+- **Training = minimizing a loss by gradient descent.** Define a misfit $L(\theta)$, then step
+  $\theta \leftarrow \theta - \eta\,\nabla_\theta L$ (Adam is a smarter version). Everything hinges
+  on the gradient.
+- **The enabler is automatic differentiation (AD).** AD applies the chain rule to the elementary
+  operations your code already runs — giving *exact* (machine-precision) gradients at a cost of
+  about one extra evaluation, *regardless of how many parameters*. (Reverse-mode AD = backpropagation.)
+
+> ⚙️ **Why not finite differences?** $\big(L(\theta+h)-L(\theta)\big)/h$ is approximate (step-size
+> dilemma) and costs one evaluation *per parameter* — hopeless for thousands of weights. AD is exact
+> and cheap.
+""")
+
+code(r"""
+# AD vs finite differences on an awkward function.
+def g(x):
+    return jnp.sin(3 * x) * jnp.exp(-0.2 * x**2) + 0.5 * x
+
+x0 = 1.3
+ad = jax.grad(g)(x0)                          # exact, automatic differentiation
+fd = (g(x0 + 1e-6) - g(x0 - 1e-6)) / 2e-6     # finite-difference approximation
+print(f"AD = {ad:.10f}   finite-diff = {fd:.10f}   |diff| = {abs(ad-fd):.1e}")
+""")
+
+md(r"""
+That `jax.grad` is the entire engine behind deep learning — and behind everything below. The only
+new wrinkle: the quantity we differentiate is the output of an **ODE solver**.
+""")
+
+# ===========================================================================
+md(r"""
+## 4 · The UDE idea: learnable physics + differentiating through the solver
+
+A spectrum from all-physics to all-data:
+
+| | Pure physics | **UDE (grey box)** | Neural ODE | Pure ML |
+|---|---|---|---|---|
+| RHS | known $f(u,t)$ | **known structure + learned $\mathcal{U}_\theta$** | all network | no DE |
+| Data needed | calibration | **moderate** | a lot | a lot |
+| Extrapolates / interpretable | yes | **largely yes** | weakly | no |
+
+To train, we need $\nabla_\theta L$ where $L$ depends on the *solution* of the SIA — so we must
+**differentiate through the solver**. `jax.grad` simply "sees through" `diffeqsolve`; under the hood
+this is a checkpointed adjoint. That is the whole trick.
+
+> 🔗 **Worth knowing.** Reverse-mode AD through a solver *is* the classical **adjoint method** of
+> inverse modelling (MacAyeal, 1993), generated automatically. The `AD_and_adjoints_concepts`
+> companion makes this precise.
+
+> 🧭 **Cousins.** *PINNs* put the PDE residual in the loss of a network representing the solution;
+> *SINDy* does sparse term discovery; *Neural ODEs* make the whole RHS a network. UDEs keep the
+> known operator and learn only the missing closure.
+""")
+
+# ===========================================================================
+md(r"""
+## 5 · Worked example — recovering Glen's creep parameter $A(T)$
+
+> ❓ **The inverse problem.** We trust the SIA but *don't know* how $A$ depends on climate. We *can*
+> observe surface velocities. Can we learn $A(T)$ directly from velocity data, *through* the
+> ice-flow equation?
+
+This is the headline experiment of Bolibar et al. (2023), in miniature, run as a **synthetic twin
+experiment** (so we know the truth and can check):
+
+1. Invent a *hidden* law $A_{\text{true}}(T)$ (warmer ⇒ softer ice).
+2. Generate "observations": glaciers at different temperatures, evolved a few decades; record their
+   surface velocities.
+3. *Forget* $A_{\text{true}}$. Replace $A$ with a network $A_\theta(T)$ and train it to match the
+   velocities.
+4. Compare recovered $A_\theta(T)$ to the truth.
+
+> ⚠️ **Design choice that matters (see §7).** We observe a *transient*, not a steady state. At steady
+> state, surface velocity is set by mass balance, not $A$ — so $A$ would be unidentifiable
+> (*equifinality*). The transient avoids this.
+
+### 5.1 The known physics — the SIA flowline model
+""")
+
+code(r"""
+# --- constants (SI units, time in YEARS) -----------------------------------
+RHO, G = 900.0, 9.81                 # ice density [kg/m^3], gravity [m/s^2]
+N_GLEN = 3.0                         # Glen exponent (assumed known)
+A_FLOOR, A_CEIL = 1e-18, 4e-16       # physical band for A [Pa^-3 a^-1]
+
+# --- flowline geometry & climate -------------------------------------------
+L, NX = 30_000.0, 41
+dx = L / (NX - 1)
+x = jnp.linspace(0.0, L, NX)
+bed = 2800.0 - 0.04 * x              # gently sloping valley floor [m]
+ELA, BETA, CAP = 2300.0, 0.004, 0.8  # equilibrium-line altitude, MB gradient, max accumulation
+
+def mass_balance(S):
+    "Altitude-dependent surface mass balance [m ice / a]."
+    return jnp.clip(BETA * (S - ELA), None, CAP)
+""")
+
+code(r"""
+def sia_rhs(t, H, A):
+    '''dH/dt for the SIA flowline (method of lines).
+    KNOWN PHYSICS:  dH/dt = b_dot + d/dx( D dS/dx ),  D = (2A/(n+2))(rho g)^n H^(n+2) |dS/dx|^(n-1).
+    `A` is the creep parameter -- the term we will later replace with a network.'''
+    A = jnp.clip(A, A_FLOOR, A_CEIL)
+    H = jnp.clip(H, 0.0)
+    S = bed + H
+    dSdx   = (S[1:] - S[:-1]) / dx                  # surface slope on edges
+    H_edge = 0.5 * (H[1:] + H[:-1])
+    Gamma  = 2.0 * A / (N_GLEN + 2.0) * (RHO * G) ** N_GLEN
+    D      = Gamma * H_edge ** (N_GLEN + 2.0) * jnp.abs(dSdx) ** (N_GLEN - 1.0)
+    q      = -D * dSdx                               # ice flux on edges
+    div    = jnp.zeros(NX).at[1:-1].set(-(q[1:] - q[:-1]) / dx)
+    # can't melt absent ice: a SMOOTH limiter (differentiable at the moving front)
+    limiter = jnp.clip(H / 10.0, 0.0, 1.0)
+    bdot = mass_balance(S)
+    return jnp.maximum(bdot, 0.0) + jnp.minimum(bdot, 0.0) * limiter + div
+""")
+
+md(r"""
+> 🧮 **Solver choice: implicit, on purpose.** Ice flow is *stiff* diffusion ($D \propto H^{n+2}$),
+> so we integrate with a simple **implicit (backward-Euler)** scheme. Implicit solvers stay stable
+> at large steps — and, crucially, give *well-behaved gradients*. An explicit solver on stiff ice
+> produces exploding gradients (demonstrated in the deep-dive notebook). Each implicit step solves a
+> small nonlinear system (the `root_finder`).
+""")
+
+code(r"""
+# Implicit backward-Euler solver. Fixed step; each step solves a nonlinear system.
+SOLVER = dfx.ImplicitEuler(root_finder=dfx.VeryChord(rtol=1e-5, atol=1e-4, norm=optx.max_norm))
+DT_YEARS = 0.5
+
+def solve_sia(A, H0, t1):
+    "Integrate the SIA forward to time t1 [years]; return final thickness."
+    n = int(round(t1 / DT_YEARS))
+    sol = dfx.diffeqsolve(
+        dfx.ODETerm(sia_rhs), SOLVER, t0=0.0, t1=t1, dt0=DT_YEARS, y0=H0, args=A,
+        stepsize_controller=dfx.ConstantStepSize(), max_steps=n + 5,
+        saveat=dfx.SaveAt(t1=True),
+        adjoint=dfx.RecursiveCheckpointAdjoint(),  # checkpointed adjoint: lets jax.grad see through
+    )
+    return sol.ys[-1]
+
+def surface_velocity(H, A):
+    "SIA surface speed at nodes [m/a] -- our observable."
+    A = jnp.clip(A, A_FLOOR, A_CEIL); H = jnp.clip(H, 0.0); S = bed + H
+    dSdx = (S[1:] - S[:-1]) / dx; H_edge = 0.5 * (H[1:] + H[:-1])
+    u_edge = (2.0 * A / (N_GLEN + 1.0)) * (RHO * G) ** N_GLEN \
+        * H_edge ** (N_GLEN + 1.0) * jnp.abs(dSdx) ** N_GLEN
+    return jnp.zeros(NX).at[1:-1].set(0.5 * (u_edge[1:] + u_edge[:-1]))
+""")
+
+md(r"""
+### 5.2 The hidden truth and the synthetic observations
+
+A shared starting geometry; eight glaciers at different temperatures evolve for `T_OBS` years under
+their own $A_{\text{true}}(T)$; we record surface velocities.
+""")
+
+code(r"""
+T_glaciers = jnp.linspace(-25.0, -3.0, 8)        # eight synthetic glaciers
+
+def A_true(T):
+    "HIDDEN ground-truth creep law: warmer ice -> larger A. [Pa^-3 a^-1]"
+    return 1.0e-16 * jnp.exp(0.13 * (T + 10.0))
+
+A_REF  = float(A_true(-14.0))                    # reference A, used only to spin up geometry
+T_SPIN = 300.0                                   # years to build a quasi-steady start
+T_OBS  = 30.0                                    # observed transient length [years]
+
+H_init = solve_sia(A_REF, jnp.zeros(NX), T_SPIN)            # common starting geometry
+A_vals = A_true(T_glaciers)
+H_obs  = jax.vmap(lambda A: solve_sia(A, H_init, T_OBS))(A_vals)
+U_obs  = jax.vmap(surface_velocity)(H_obs, A_vals)          # the "observations"
+
+print(f"starting geometry: max thickness {float(H_init.max()):.0f} m")
+print("observed peak velocity per glacier [m/a]:", np.round(np.array(U_obs.max(axis=1)), 1))
+""")
+
+code(r"""
+fig, ax = plt.subplots(1, 2, figsize=(11, 4))
+ax[0].fill_between(x/1000, bed, bed + np.array(H_init), color="#bcd4e6", label="ice")
+ax[0].plot(x/1000, bed, color="#6b4f2a", lw=2, label="bedrock")
+ax[0].plot(x/1000, bed + np.array(H_init), color="#1f6f8b", lw=2, label="surface")
+ax[0].set(xlabel="distance [km]", ylabel="elevation [m]",
+          title=f"Common starting geometry ({float(H_init.max()):.0f} m max)")
+ax[0].legend(frameon=False, fontsize=9)
+colors = plt.cm.coolwarm(np.linspace(0, 1, len(T_glaciers)))
+for i, T in enumerate(np.array(T_glaciers)):
+    ax[1].plot(x/1000, np.array(U_obs[i]), color=colors[i], label=f"{T:.0f} °C")
+ax[1].set(xlabel="distance [km]", ylabel="surface velocity [m/a]",
+          title="Observed velocities (warmer = softer = faster)")
+ax[1].legend(frameon=False, fontsize=8, title="mean air T", ncol=2)
+plt.tight_layout(); plt.show()
+""")
+
+md(r"""
+Warmer glaciers flow faster *for the same geometry and climate* — softer ice. That spread is the
+signal we invert.
+
+### 5.3 The learnable closure: a neural network $A_\theta(T)$
+
+> 🔧 **Three good-practice choices for the network.**
+> - **Normalize the input** — feed $(T+14)/11$, so the input is $O(1)$ (standard for stable training).
+> - **Learn a deviation from a physics baseline** — output $A_\theta(T)=A_\mathrm{ref}\,e^{\,\mathrm{net}(T)}$,
+>   i.e. learn $\log A$ relative to a reference $A_\mathrm{ref}$. Scale-free (A spans orders of
+>   magnitude), positive by construction, and non-saturating (a bounded sigmoid output can saturate
+>   and freeze training).
+> - **Initialization then takes care of itself** — with the normalized input *and* the log-deviation
+>   parametrization, the untrained network already starts flat and *near* $A_\mathrm{ref}$, in-range.
+>   (Tempting to force it *exactly* onto the baseline by zeroing the output layer — but for a network
+>   this small that starves the hidden layer of gradient and *hurts* training, so we don't.)
+""")
+
+code(r"""
+class CreepNet(eqx.Module):
+    "Neural network for the creep parameter:  T -> A_theta(T)."
+    mlp: eqx.nn.MLP
+
+    def __init__(self, key):
+        # small on purpose: the PDE supplies strong structure, so few parameters are needed
+        self.mlp = eqx.nn.MLP(in_size=1, out_size=1, width_size=10, depth=2,
+                              activation=jax.nn.softplus, key=key)
+
+    def __call__(self, T):
+        z = jnp.atleast_1d((T + 14.0) / 11.0)            # normalize input to ~O(1)
+        return A_REF * jnp.exp(jnp.clip(self.mlp(z)[0], -5.0, 5.0))   # learn log-deviation from A_REF
+
+model0 = CreepNet(jax.random.PRNGKey(0))
+n_par = sum(p.size for p in jax.tree_util.tree_leaves(eqx.filter(model0, eqx.is_array)))
+print(f"untrained A_theta(-10 C) = {float(model0(-10.0)):.2e}   |   {n_par} trainable parameters")
+""")
+
+md(r"""
+### 5.4 The loss — and gradients *through* the solver
+
+The loss runs the **same** SIA solver with $A_\theta(T)$ from the network and compares predicted vs.
+observed velocities. `eqx.filter_value_and_grad` differentiates it **through `diffeqsolve`** — every
+implicit time step of the ice-flow integration.
+""")
+
+code(r"""
+def loss_fn(model, U_obs):
+    A_pred = jax.vmap(model)(T_glaciers)                              # A_theta(T) per glacier
+    H_pred = jax.vmap(lambda A: solve_sia(A, H_init, T_OBS))(A_pred)  # SOLVE the PDE
+    U_pred = jax.vmap(surface_velocity)(H_pred, A_pred)
+    scale  = jnp.maximum(U_obs.max(axis=1, keepdims=True), 1.0)       # weigh glaciers equally
+    return jnp.mean(((U_pred - U_obs) / scale) ** 2)
+
+loss0, grads = eqx.filter_value_and_grad(loss_fn)(model0, U_obs)
+print(f"initial loss = {float(loss0):.3e}   |   gradient norm = {float(optax.global_norm(grads)):.3e}")
+""")
+
+md("### 5.5 Train  (Adam + cosine-decayed learning rate + gradient clipping; ~30 s)")
+
+code(r"""
+N_EPOCHS = 400
+schedule = optax.cosine_decay_schedule(init_value=3e-3, decay_steps=N_EPOCHS, alpha=0.05)
+optimizer = optax.chain(optax.clip_by_global_norm(1.0), optax.adam(schedule))
+
+model = CreepNet(jax.random.PRNGKey(0))
+opt_state = optimizer.init(eqx.filter(model, eqx.is_array))
+
+@eqx.filter_jit
+def train_step(model, opt_state, U_obs):
+    loss, grads = eqx.filter_value_and_grad(loss_fn)(model, U_obs)
+    updates, opt_state = optimizer.update(grads, opt_state)
+    return eqx.apply_updates(model, updates), opt_state, loss
+
+history = []
+t0 = time.time()
+for epoch in range(N_EPOCHS):
+    model, opt_state, loss = train_step(model, opt_state, U_obs)
+    history.append(float(loss))
+    if epoch % 50 == 0 or epoch == N_EPOCHS - 1:
+        print(f"epoch {epoch:4d}   loss = {float(loss):.3e}")
+print(f"\ntrained in {time.time() - t0:.1f} s")
+""")
+
+md(r"""
+### 5.6 Did we recover the hidden physics?
+
+Plot learned $A_\theta(T)$ against the truth we hid — the analogue of Figure 3 in Bolibar et al.
+""")
+
+code(r"""
+A_learned = jax.vmap(model)(T_glaciers)
+rel_err = np.abs(np.array((A_learned - A_vals) / A_vals))
+T_dense = jnp.linspace(-26.0, -2.0, 100)
+
+fig, ax = plt.subplots(1, 2, figsize=(11, 4))
+ax[0].semilogy(history, color="#1f6f8b"); ax[0].set(xlabel="epoch", ylabel="loss", title="Training loss")
+ax[1].plot(np.array(T_dense), np.array(jax.vmap(model)(T_dense)), color="#d1495b", lw=2.5, label=r"learned $A_\theta(T)$")
+ax[1].plot(np.array(T_dense), np.array(A_true(T_dense)), "--", color="0.3", lw=2, label=r"hidden truth")
+ax[1].scatter(np.array(T_glaciers), np.array(A_vals), color="k", zorder=5, s=35, label="training glaciers")
+ax[1].set(xlabel="mean air temperature [°C]", ylabel=r"$A$ [Pa$^{-3}$ a$^{-1}$]", title="Recovered constitutive law")
+ax[1].legend(frameon=False, fontsize=9)
+plt.tight_layout(); plt.show()
+print(f"recovery error in A(T):  mean {rel_err.mean():.1%}   max {rel_err.max():.1%}")
+""")
+
+md(r"""
+The network started knowing *nothing* about ice rheology and recovered the hidden temperature
+dependence to a few percent — purely by reproducing observed velocities through the physics. What we
+gained over a black-box fit:
+
+- **Interpretable** — $A_\theta(T)$ is a curve we can inspect and compare to lab data.
+- **Physically consistent** — predictions always obey mass conservation and the SIA.
+- **Data-efficient** — a handful of glaciers sufficed, because the PDE does most of the explaining.
+
+### 5.7 Bonus: robustness to noise
+
+> 🛡️ **Implicit regularization.** The embedded PDE resists overfitting noise *without* any explicit
+> penalty — Bolibar et al. report the same. Add 15% noise and retrain:
+""")
+
+code(r"""
+U_noisy = U_obs + 0.15 * U_obs * jax.random.normal(jax.random.PRNGKey(42), U_obs.shape)
+model_n = CreepNet(jax.random.PRNGKey(0))
+opt_state_n = optimizer.init(eqx.filter(model_n, eqx.is_array))
+for _ in range(N_EPOCHS):
+    model_n, opt_state_n, _ = train_step(model_n, opt_state_n, U_noisy)
+
+rel_n = np.abs(np.array((jax.vmap(model_n)(T_glaciers) - A_vals) / A_vals))
+plt.figure(figsize=(6, 4))
+plt.plot(np.array(T_dense), np.array(A_true(T_dense)), "--", color="0.3", lw=2, label="hidden truth")
+plt.plot(np.array(T_dense), np.array(jax.vmap(model)(T_dense)), color="#1f6f8b", lw=2, label="learned (clean)")
+plt.plot(np.array(T_dense), np.array(jax.vmap(model_n)(T_dense)), color="#d1495b", lw=2, label="learned (15% noise)")
+plt.xlabel("mean air temperature [°C]"); plt.ylabel(r"$A$ [Pa$^{-3}$ a$^{-1}$]")
+plt.title("Recovered $A(T)$ stays smooth under noise"); plt.legend(frameon=False, fontsize=9)
+plt.tight_layout(); plt.show()
+print(f"recovery error WITH 15% noise:  mean {rel_n.mean():.1%}   max {rel_n.max():.1%}")
+""")
+
+# ===========================================================================
+md(r"""
+## 6 · From the toy to the real thing: Bolibar et al. (2023)
+
+**"Universal differential equations for glacier ice flow modelling"**, Geosci. Model Dev. **16**,
+6671–6687, [doi:10.5194/gmd-16-6671-2023](https://doi.org/10.5194/gmd-16-6671-2023). Same idea,
+scaled to real glaciers:
+
+| | This notebook | Bolibar et al. 2023 |
+|---|---|---|
+| Physics | 1-D SIA flowline | 2-D SIA on real grids |
+| Geometry / climate | synthetic | real (RGI, OGGM, W5E5, Farinotti thickness) |
+| Unknown closure | $A(T)$ | $A_\theta(T_s)$ |
+| Differentiation | checkpointed AD (`diffrax`) | continuous adjoint (`SciMLSensitivity`) |
+| Optimizer | Adam | BFGS |
+| Scale | 8 glaciers, ~30 s, CPU | 17 glaciers, ~10⁵ ODEs, ~3 h on 16 CPUs |
+| Software | JAX stack | [ODINN.jl](https://github.com/ODINN-SciML/ODINN.jl) (Julia) |
+
+**Key findings:**
+- Recovered the prescribed (noisy) $A(T_s)$ across glaciers **without overfitting** and **without
+  explicit regularization** — implicit regularization by the PDE (we reproduced this in §5.7).
+- **Robust to a deliberately wrong mass-balance forcing**, because velocity is less sensitive to
+  mass-balance error than thickness change is.
+
+**Where it's going:** learnable basal **sliding**, learnable **mass-balance** laws, seasonal
+velocity data to separate creep from sliding, and full-Stokes emulators.
+""")
+
+# ===========================================================================
+md(r"""
+## 7 · Pitfalls & frontier
+
+We hit two of these *for real* while building this notebook.
+
+> ⚠️ **Identifiability / equifinality.** Fitting $A$ from *steady-state* velocities fails: the
+> glacier just adjusts its thickness, leaving velocity insensitive to $A$. We fixed it with a
+> *transient*. In reality, creep and **sliding** are similarly confounded in a single velocity
+> snapshot — seasonal time series are needed to separate them.
+
+> ⚠️ **Stiff gradients.** Thick ice makes the diffusion stiff; an *explicit* solver's gradients
+> then explode (norms $\sim10^{12}$). The principled fix — which we adopted as the **default** — is
+> an **implicit solver**, whose gradients stay well-behaved. (Gradient clipping and a smooth ice
+> front help too.) The deep-dive notebook demonstrates the explicit-vs-implicit difference directly.
+
+Other things to watch:
+- **Local minima** — non-convex loss; restarts and learning-rate schedules matter.
+- **Extrapolation** — $A_\theta(T)$ is only trustworthy over the temperature range seen in training;
+  bound the output to physical values.
+- **Uncertainty** — quantifying uncertainty in the *learned function* (Bayesian/ensemble) is largely open.
+
+**Adjacent methods:** PINNs (Raissi et al., 2019), SINDy (Brunton et al., 2016), Neural ODEs
+(Chen et al., 2018), neural operators. UDEs keep the trusted operator and learn only the closure.
+""")
+
+# ===========================================================================
+md(r"""
+## 8 · Exercises
+
+1. **Break identifiability.** Set `T_OBS` large (→ steady state), retrain, and watch recovery
+   degrade. Why?
+2. **Change the observable.** Train on final thickness instead of velocity. Easier or harder?
+3. **Learn $n$ too.** Make Glen's $n$ a second learnable scalar. Is $(A, n)$ jointly identifiable
+   from velocity alone?
+4. **Add sliding.** Append $u_b = C\,\tau_b^{m}$ with learnable $C(T)$. Can you separate it from
+   creep with steady velocities? What extra data helps?
+5. **Solver robustness.** Thicken the ice and switch `ImplicitEuler` → an *explicit* `dfx.Tsit5`.
+   Watch the gradients blow up — then switch back. (Worked through in the deep-dive notebook.)
+""")
+
+# ===========================================================================
+md(r"""
+## 9 · References
+
+**Core paper** — Bolibar, J., Sapienza, F., Maussion, F., Lguensat, R., Wouters, B., & Pérez, F.
+(2023). *Universal differential equations for glacier ice flow modelling.* GMD 16, 6671–6687.
+https://doi.org/10.5194/gmd-16-6671-2023 · ODINN.jl: https://github.com/ODINN-SciML/ODINN.jl
+
+**UDEs & scientific ML** — Rackauckas et al. (2020), *Universal Differential Equations for SciML*,
+arXiv:2001.04385 · Chen et al. (2018), *Neural ODEs*, NeurIPS · Brunton et al. (2016), *SINDy*, PNAS
+113(15) · Raissi et al. (2019), *Physics-informed neural networks*, JCP 378 · Sapienza et al. (2024),
+*Differentiable programming for differential equations: a review*, arXiv:2406.09699.
+
+**Glaciology** — Cuffey & Paterson (2010), *The Physics of Glaciers* (4th ed.) · MacAyeal (1993),
+*Control methods in ice-sheet modeling*, J. Glaciol. 39(131) · Maussion et al. (2019), *OGGM*, GMD 12 ·
+Farinotti et al. (2019), *Consensus ice thickness*, Nat. Geosci. 12.
+
+**Software** — JAX · diffrax (Kidger, 2021) · equinox · optax.
+
+---
+*A small, fast, synthetic re-creation of Bolibar et al. (2023) for teaching. Numbers are synthetic;
+the ideas are real.*
+""")
+
+nb["cells"] = cells
+nb["metadata"] = {"kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
+                  "language_info": {"name": "python"}}
+with open("UDE_glaciology_lecture.ipynb", "w") as f:
+    nbf.write(nb, f)
+print(f"wrote UDE_glaciology_lecture.ipynb with {len(cells)} cells")

@@ -1,0 +1,339 @@
+"""Generate the companion concepts notebook on AD, adjoints, and differentiable solvers.
+
+Run:  uv run python build_concepts_notebook.py
+Then: uv run jupyter nbconvert --to notebook --execute --inplace AD_and_adjoints_concepts.ipynb
+"""
+import nbformat as nbf
+
+nb = nbf.v4.new_notebook()
+cells = []
+def md(t): cells.append(nbf.v4.new_markdown_cell(t.strip("\n")))
+def code(t): cells.append(nbf.v4.new_code_cell(t.strip("\n")))
+
+# ===========================================================================
+md(r"""
+# Differentiation, Adjoints & Differentiable Solvers
+### A companion to the UDE glaciology lecture
+
+*Optional / advanced.* Expands one idea from `UDE_glaciology_lecture.ipynb`:
+
+> 💡 **Reverse-mode automatic differentiation *is* the adjoint method.**
+
+Glaciology has used **adjoint models** for inversions since MacAyeal (1993); modern scientific ML
+uses **automatic differentiation (AD)**. They aren't competitors — AD is *how you obtain an adjoint
+without deriving it by hand*. This also resolves two slogans that sound contradictory ("AD makes
+adjoints unnecessary" vs. "backprop is just the adjoint method") and a fair question: *if AD treats
+every program the same, why do ODE/PDE solvers get special differentiation machinery?*
+
+| § | Topic |
+|---|-------|
+| 1 | Four ways to differentiate — and why **symbolic** is still great *at the right level* (Firedrake) |
+| 2 | **Forward vs. reverse** mode, and the cost model |
+| 3 | **Reverse-mode AD = the adjoint method** (derived + demonstrated) |
+| 4 | **Discrete vs. continuous** adjoints |
+| 5 | **Memory** — default is store-everything; checkpointing is opt-in |
+| 6 | Why **DE solvers** get dedicated tooling |
+| 7 | A decision guide |
+
+> 🔬 **Hands-on failure modes** (backward-diffusion ill-posedness, exploding explicit-solver
+> gradients) live in the **numerical deep-dive** notebook — pointers below.
+""")
+
+code(r"""
+import jax, jax.numpy as jnp, numpy as np, diffrax as dfx
+jax.config.update("jax_enable_x64", True)
+print("jax", jax.__version__, "| diffrax", dfx.__version__)
+""")
+
+# ===========================================================================
+md(r"""
+## 1 · Four ways to compute a derivative
+
+| Method | Idea | Exact? | Cost / failure |
+|---|---|---|---|
+| **Manual** | derive by hand | yes | labour, errors |
+| **Symbolic** | manipulate the *expression* (SymPy, UFL) | yes | *expression swell* — at the wrong granularity |
+| **Numerical** (finite diff) | $(L(\theta+h)-L(\theta))/h$ | no | step-size dilemma; $O(n)$ evals |
+| **Automatic** (AD) | chain rule on elementary ops | **yes (machine prec.)** | $\approx O(1)$ for a scalar loss |
+
+The lecture was a little unfair to **symbolic** differentiation. Let's be precise about when it
+struggles — and when it shines.
+""")
+
+code(r"""
+import sympy as sp
+x = sp.symbols('x')
+
+# (a) compact expression: clean, exact, useful
+print("d/dx[ sin(x) e^{-x^2} ] =", sp.diff(sp.sin(x) * sp.exp(-x**2), x))
+
+# (b) the classic failure: differentiate a deeply NESTED composition ('a program')
+g = x
+for _ in range(4):
+    g = sp.sin(x * g)
+print(f"\nnested g: {sp.count_ops(g):3d} ops   ->   dg/dx: {sp.count_ops(sp.diff(g, x)):3d} ops   (expression swell)")
+""")
+
+md(r"""
+> ✅ **The resolution: differentiate at the right level of abstraction.** Expression swell is about
+> differentiating long *imperative programs* symbolically — not a reason to abandon symbolic methods.
+> The premier counterexample is the finite-element world:
+>
+> - **Firedrake / FEniCS** write a PDE as a **variational form** in UFL, and differentiate that
+>   *form* symbolically (`ufl.derivative`) — the form is small, so no swell.
+> - **`firedrake.adjoint` / `pyadjoint` / `dolfin-adjoint`** (Farrell et al., 2013) then build the
+>   **adjoint** by taping the high-level sequence of solves, using the symbolic form-derivatives.
+>
+> So Firedrake is a hybrid: **symbolic** form differentiation + a **discrete adjoint** over the
+> solves. "Symbolic vs. AD" is a false choice — the real question is *at what level you differentiate*.
+> AD differentiates elementary array ops, which is why it composes with *any* code, including a
+> hand-written time-stepping loop.
+""")
+
+# ===========================================================================
+md(r"""
+## 2 · Forward mode vs. reverse mode
+
+For $F:\mathbb{R}^n\to\mathbb{R}^m$ with Jacobian $J$:
+
+- **Forward mode** propagates a tangent → one **Jacobian–vector product** $Jv$ (one *column*) per
+  pass → $n$ passes for the full Jacobian.
+- **Reverse mode** propagates a cotangent → one **vector–Jacobian product** $w^\top J$ (one *row*)
+  per pass → $m$ passes.
+
+> 💡 **The asymmetry that makes ML possible.** A loss is a single scalar ($m=1$) with many
+> parameters ($n$ large). Reverse mode gets the *entire* gradient in **one** backward pass,
+> independent of $n$. That is exactly the adjoint method's signature (§3).
+""")
+
+code(r"""
+def F(x):                       # R^4 -> R^3
+    return jnp.array([jnp.sum(x**2), jnp.prod(x), jnp.sum(jnp.sin(x))])
+x = jnp.array([0.5, 1.0, 1.5, 2.0])
+
+J_fwd = jnp.stack([jax.jvp(F, (x,), (e,))[1] for e in jnp.eye(4)], axis=1)   # 4 passes (inputs)
+_, vjp = jax.vjp(F, x)
+J_rev = jnp.stack([vjp(e)[0] for e in jnp.eye(3)], axis=0)                   # 3 passes (outputs)
+print("Jacobians identical:", bool(jnp.allclose(J_fwd, J_rev)),
+      "| forward: 4 passes (n inputs), reverse: 3 passes (m outputs)")
+""")
+
+# ===========================================================================
+md(r"""
+## 3 · Reverse-mode AD *is* the adjoint method
+
+**The adjoint trick.** We want $dL/d\theta$ where $L(u,\theta)$ depends on $\theta$ through a
+constraint $g(u,\theta)=0$ defining $u(\theta)$. Forming $du/d\theta$ costs *one linear solve per
+parameter*. Instead, introduce the **adjoint variable** $\lambda$ via the **transposed** equation:
+
+$$\Big(\tfrac{\partial g}{\partial u}\Big)^{\!\top}\!\lambda = \Big(\tfrac{\partial L}{\partial u}\Big)^{\!\top},
+\qquad \frac{dL}{d\theta} = \frac{\partial L}{\partial\theta} - \lambda^{\!\top}\frac{\partial g}{\partial\theta}.$$
+
+One transposed solve, **independent of the number of parameters**. $\lambda$ is the Lagrange
+multiplier.
+
+**What reverse-mode AD does.** It walks the program backward, applying each operation's transposed
+local Jacobian (its VJP) to the running cotangent $\bar v = \partial L/\partial v$. Those cotangents
+**are** the adjoint variables. For a solver $u_{k+1}=\Phi(u_k,\theta)$, reverse mode executes the
+discrete adjoint recurrence $\lambda_k = (\partial\Phi/\partial u_k)^{\!\top}\lambda_{k+1}$. Proof by
+demonstration:
+""")
+
+code(r"""
+# Explicit model:  u_{k+1} = (1 - theta_k * dt) u_k,  vector of params, scalar loss.
+N, dt, u0, target = 20, 0.05, 1.0, 0.3
+theta = 0.4 + 0.1 * jnp.sin(jnp.arange(N))
+
+def forward_loss(theta):
+    u = u0
+    for k in range(N):
+        u = (1.0 - theta[k] * dt) * u
+    return (u - target) ** 2
+
+grad_ad = jax.grad(forward_loss)(theta)               # reverse-mode AD
+
+def hand_adjoint(theta):                              # the classic adjoint recurrence, by hand
+    u = [u0]
+    for k in range(N):
+        u.append((1.0 - theta[k] * dt) * u[-1])
+    u = jnp.array(u)
+    lam = 2.0 * (u[N] - target)                       # lambda_N = dL/du_N
+    grad = np.zeros(N)
+    for k in range(N - 1, -1, -1):
+        grad[k] = lam * (-dt * u[k])                  # dL/dtheta_k
+        lam = (1.0 - theta[k] * dt) * lam             # lambda_k = (dPhi/du_k)^T lambda_{k+1}
+    return jnp.array(grad)
+
+print(f"max |AD - hand-coded adjoint| = {float(jnp.max(jnp.abs(grad_ad - hand_adjoint(theta)))):.2e}")
+""")
+
+md(r"""
+> 🔑 **Punchline.** "Backprop" and "the adjoint method" are the *same computation*; AD just generates
+> it from your forward code. "AD makes adjoints unnecessary" = removes the **hand-derivation**.
+> "Backprop is the adjoint method" = literally true.
+""")
+
+# ===========================================================================
+md(r"""
+## 4 · Discrete vs. continuous adjoints
+
+Two places to apply the adjoint idea — not identical:
+
+- **Discrete** (*discretize-then-differentiate*): exact gradient of the discrete solver. What
+  reverse-mode AD produces. Passes a finite-difference check bit-for-bit.
+- **Continuous** (*differentiate-then-discretize*): derive the adjoint *PDE* analytically, then
+  discretize it (possibly differently). An *approximation* to the discrete gradient — converges with
+  refinement, but can be inconsistent.
+
+`diffrax` lets us pick and check they agree on a benign problem:
+""")
+
+code(r"""
+def vf(t, y, theta):                 # theta via `args` (BacksolveAdjoint needs explicit args)
+    return -theta * y
+
+def loss(theta, adjoint):
+    sol = dfx.diffeqsolve(dfx.ODETerm(vf), dfx.Tsit5(), 0.0, 5.0, 0.01, 1.0, args=theta,
+                          stepsize_controller=dfx.PIDController(rtol=1e-8, atol=1e-8),
+                          adjoint=adjoint, saveat=dfx.SaveAt(t1=True))
+    return (sol.ys[-1] - 0.2) ** 2
+
+for name, adj in [("DirectAdjoint (discrete, store-all)", dfx.DirectAdjoint()),
+                  ("RecursiveCheckpointAdjoint (discrete)", dfx.RecursiveCheckpointAdjoint()),
+                  ("BacksolveAdjoint (continuous)", dfx.BacksolveAdjoint())]:
+    print(f"  {name:40s} dL/dtheta = {float(jax.grad(loss)(0.7, adj)):.10f}")
+T, th = 5.0, 0.7; y = np.exp(-th * T)
+print(f"  {'analytic':40s} dL/dtheta = {2*(y-0.2)*(-T*y):.10f}")
+print("\nAll agree; the continuous (Backsolve) value differs in the last digits -- it is an approximation.")
+""")
+
+# ===========================================================================
+md(r"""
+## 5 · Memory: default is store-everything; checkpointing is opt-in
+
+> 📋 **Common misconception.** By default, neither JAX nor PyTorch checkpoints. The default reverse
+> pass is **maximum-memory, zero-recompute**: save every intermediate, consume in reverse.
+>
+> - **PyTorch (eager):** saves activations; never recomputes. Opt-in: `torch.utils.checkpoint`.
+> - **JAX:** `jax.grad` saves residuals; opt-in rematerialization is `jax.checkpoint` (`jax.remat`).
+> - *Caveats:* XLA can rematerialize to fit a memory budget (heuristic); `torch.compile`'s min-cut
+>   partitioner makes automatic save-vs-recompute choices. Neither is the principled $O(\log N)$ schedule.
+
+**Checkpointing** trades memory for recomputation: store a few states, recompute the rest in the
+backward pass. The optimal schedule (Griewank–Walther `revolve`) is $O(\log N)$ memory at
+$O(N\log N)$ compute. Hand-rolled on a chain, to see the trade and confirm the gradient is unchanged:
+""")
+
+code(r"""
+N, theta = 64, 0.99
+def phi(y):  return np.tanh(y) + theta * y
+def dphi(y): return (1 - np.tanh(y) ** 2) + theta
+
+def store_all(y0):
+    ys = [y0]
+    for _ in range(N): ys.append(phi(ys[-1]))
+    lam = ys[N]
+    for k in range(N - 1, -1, -1): lam = dphi(ys[k]) * lam
+    return lam, len(ys), N
+
+def checkpointed(y0, s):
+    ckpts, y = {0: y0}, y0
+    for k in range(1, N + 1):
+        y = phi(y)
+        if k % s == 0: ckpts[k] = y
+    lam, fwd, peak = y, N, max(len(ckpts), s)
+    for k in range(N - 1, -1, -1):
+        if k in ckpts:
+            yk = ckpts[k]
+        else:
+            base = max(c for c in ckpts if c < k); yk = ckpts[base]
+            for _ in range(k - base): yk = phi(yk); fwd += 1
+        lam = dphi(yk) * lam
+    return lam, peak, fwd
+
+g0, m0, f0 = store_all(1.0)
+g1, m1, f1 = checkpointed(1.0, s=8)
+print(f"store-all    : ~{m0:2d} states, {f0:3d} forward evals")
+print(f"checkpointed : ~{m1:2d} states, {f1:3d} forward evals   (same gradient: {abs(g0-g1) < 1e-9})")
+
+def deep(x):
+    for _ in range(50): x = jnp.tanh(x) + 0.1 * x
+    return jnp.sum(x ** 2)
+x0 = jnp.linspace(-1, 1, 8)
+print("jax.grad == jax.grad(jax.checkpoint(...)):", bool(jnp.allclose(jax.grad(deep)(x0), jax.grad(jax.checkpoint(deep))(x0))))
+""")
+
+# ===========================================================================
+md(r"""
+## 6 · Why differential-equation solvers get special tooling
+
+A fair objection: *if AD treats every program identically, a solver is just a loop — why the whole
+zoo of "adjoint" options in `diffrax` / `torchdiffeq` / `SciMLSensitivity`?* At the AD level there
+is **nothing special** about a differential operator. Two things — and only two — give solvers
+dedicated machinery:
+
+- **Scale forces the memory issue.** A neural net is ~10²–10³ ops deep (store-all is fine). A stiff
+  PDE solve is **10⁴–10⁶ steps**, each with internal stages, and the step count is *data-dependent*
+  (adaptive `while` loops). That is exactly where checkpointing matters → `RecursiveCheckpointAdjoint`.
+- **A flow can reconstruct its own past.** For a generic $f=g\circ h$ you must store or recompute
+  $h(x)$. A dynamical system offers a third option: **integrate the dynamics backward in time** to
+  recover states ($O(1)$ memory — `BacksolveAdjoint`). *But only if the dynamics are reversible.*
+
+> ⚠️ **Diffusion breaks the third option.** The SIA is a diffusion equation — it destroys information
+> forward in time, so integrating it backward is *ill-posed* and explodes. For glaciers we therefore
+> use a checkpointed **discrete** adjoint (only ever integrates forward), **not** backsolve.
+> 🔬 **See the numerical deep-dive** for the live demonstration (backward heat-equation
+> reconstruction error $\sim 10^{19}$ vs. $10^{-11}$ for a reversible system), and the three-way
+> "store / forward-recompute / backward-reconstruct" comparison.
+
+**The `diffrax` adjoint zoo, decoded**
+
+| Option | What it is | Memory | Use when |
+|---|---|---|---|
+| `DirectAdjoint` | store-all discrete adjoint | $O(N)$ | short solves, debugging |
+| `RecursiveCheckpointAdjoint` | checkpointed discrete adjoint | $O(\log N)$ | **default for long/stiff solves (glaciers)** |
+| `BacksolveAdjoint` | continuous adjoint via backward integration | $O(1)$ | long, **reversible**, non-stiff |
+| `ForwardMode` | forward-mode sensitivities | — | few parameters |
+
+(`SciMLSensitivity.jl` — used by Bolibar et al. — has the analogous menu: `InterpolatingAdjoint`,
+`QuadratureAdjoint`, `BacksolveAdjoint`, …)
+""")
+
+# ===========================================================================
+md(r"""
+## 7 · Decision guide
+
+| Situation | Approach |
+|---|---|
+| New model, many params, scalar loss, moderate memory | **Reverse-mode AD** (discrete adjoint) — the default |
+| Neural network inside a solver (a **UDE**) | reverse-mode AD + checkpointing through the solve |
+| Long / stiff integration, memory-bound | checkpointed discrete adjoint (revolve) |
+| Long, **reversible**, non-stiff dynamics | continuous adjoint via backward integration ($O(1)$ memory) |
+| Implicit / steady-state / fixed-point solve | **implicit function theorem** at the converged state — don't unroll iterations |
+| FEM with a clean variational form | **symbolic form diff + high-level adjoint** (Firedrake/FEniCS + pyadjoint) |
+| AD-hostile black box in the model | hand-write its VJP (`@custom_vjp` / Julia `rrule`); AD handles the rest |
+| Legacy Fortran/C | source-transformation AD (Tapenade, TAF/OpenAD) or a hand adjoint |
+
+> 🧭 **One line.** Reverse-mode AD is the adjoint method, generated automatically and consistently
+> with your discretization. Reach for an explicit/alternative adjoint mainly for memory at scale,
+> reversible dynamics, implicit solves, FEM forms, or code AD can't penetrate.
+
+### References
+- MacAyeal (1993), *Control methods in ice-sheet modeling*, J. Glaciol. 39(131).
+- Griewank & Walther (2008), *Evaluating Derivatives* (SIAM); Griewank (1992), `revolve`, Optim. Methods Softw. 1.
+- Baydin et al. (2018), *AD in machine learning: a survey*, JMLR 18(153).
+- Farrell, Ham, Funke & Rognes (2013), *Automated derivation of the adjoint of high-level FE programs*,
+  SIAM J. Sci. Comput. 35(4); Rathgeber et al. (2016), *Firedrake*, ACM TOMS 43(3); Alnæs et al. (2014), *UFL*, ACM TOMS 40(2).
+- Chen et al. (2018), *Neural ODEs*, NeurIPS; Kidger (2021), *On Neural Differential Equations* (thesis; `diffrax`).
+- Sapienza et al. (2024), *Differentiable programming for differential equations: a review*, arXiv:2406.09699.
+
+---
+*Companion to `UDE_glaciology_lecture.ipynb`. Hands-on failure modes: the numerical deep-dive notebook.*
+""")
+
+nb["cells"] = cells
+nb["metadata"] = {"kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
+                  "language_info": {"name": "python"}}
+with open("AD_and_adjoints_concepts.ipynb", "w") as f:
+    nbf.write(nb, f)
+print(f"wrote AD_and_adjoints_concepts.ipynb with {len(cells)} cells")
