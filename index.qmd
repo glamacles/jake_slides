@@ -1,0 +1,12 @@
+---
+title: "Glaciology + Machine Learning"
+subtitle: "Summer school lecture notebooks"
+---
+
+Three linked lectures on differentiable programming and probabilistic modelling for glaciology:
+
+- [**Universal Differential Equations for Glaciology**](UDE_glaciology_lecture.ipynb) — keep the physics you trust, learn the closure you don't, by differentiating through the ice-flow solver.
+- [**Differentiation, Adjoints & Differentiable Solvers**](AD_and_adjoints_concepts.ipynb) — why reverse-mode AD *is* the adjoint method, for both time-steppers and neural networks.
+- [**Gaussian Processes**](gaussian_processes.ipynb) — distributions over functions, the weight-space vs. function-space view, and GP regression.
+
+Use the navigation bar above to move between them.

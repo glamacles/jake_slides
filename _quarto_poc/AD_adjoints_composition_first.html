@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Differentiation, Adjoints &amp; Differentiable Solvers</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="AD_adjoints_composition_first_files/libs/clipboard/clipboard.min.js"></script>
+<script src="AD_adjoints_composition_first_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="AD_adjoints_composition_first_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="AD_adjoints_composition_first_files/libs/quarto-html/popper.min.js"></script>
+<script src="AD_adjoints_composition_first_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="AD_adjoints_composition_first_files/libs/quarto-html/anchor.min.js"></script>
+<link href="AD_adjoints_composition_first_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="AD_adjoints_composition_first_files/libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="AD_adjoints_composition_first_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="AD_adjoints_composition_first_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="AD_adjoints_composition_first_files/libs/bootstrap/bootstrap-19cd76cafef3e9867d80f2c8ca64aaba.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<style>html{ scroll-behavior: smooth; }</style>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article toc-left">
+<div id="quarto-sidebar-toc-left" class="sidebar toc-left">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul class="collapse">
+  <li><a href="#a-model-is-a-composition-of-functions" id="toc-a-model-is-a-composition-of-functions" class="nav-link active" data-scroll-target="#a-model-is-a-composition-of-functions">1 · A model is a composition of functions</a></li>
+  <li><a href="#forward-and-reverse-mode" id="toc-forward-and-reverse-mode" class="nav-link" data-scroll-target="#forward-and-reverse-mode">2 · Forward and reverse mode</a></li>
+  <li><a href="#a-time-stepping-solver-is-a-composition" id="toc-a-time-stepping-solver-is-a-composition" class="nav-link" data-scroll-target="#a-time-stepping-solver-is-a-composition">3 · A time-stepping solver is a composition</a></li>
+  <li><a href="#when-the-state-is-an-implicit-solve-the-adjoint-method" id="toc-when-the-state-is-an-implicit-solve-the-adjoint-method" class="nav-link" data-scroll-target="#when-the-state-is-an-implicit-solve-the-adjoint-method">4 · When the state is an implicit solve: the adjoint method</a></li>
+  <li><a href="#checkpointing-differentiating-through-long-solves" id="toc-checkpointing-differentiating-through-long-solves" class="nav-link" data-scroll-target="#checkpointing-differentiating-through-long-solves">5 · Checkpointing: differentiating through long solves</a></li>
+  <li><a href="#takeaways" id="toc-takeaways" class="nav-link" data-scroll-target="#takeaways">6 · Takeaways</a></li>
+  </ul>
+</nav>
+</div>
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<div class="quarto-title-block"><div><h1 class="title">Differentiation, Adjoints &amp; Differentiable Solvers</h1><button type="button" class="btn code-tools-button dropdown-toggle" id="quarto-code-tools-menu" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi"></i> Code</button><ul class="dropdown-menu dropdown-menu-end" aria-labelelledby="quarto-code-tools-menu"><li><a id="quarto-show-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Show All Code</a></li><li><a id="quarto-hide-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Hide All Code</a></li></ul></div></div>
+<p class="subtitle lead">A composition-first path: from autodiff to the adjoint method</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Important</span>Main idea
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Differentiating a model means chaining the derivatives of its parts. Reverse-mode automatic differentiation (backpropagation) does exactly that, automatically. The adjoint method of PDE-constrained optimization is the same idea applied to one special part: a state defined by <em>solving</em> an equation, whose derivative rule turns out to be a linear solve.</p>
+</div>
+</div>
+<p>We build up in three steps:</p>
+<ul>
+<li>A model is a composition of functions, so its gradient is a chain of local derivatives (plain autodiff).</li>
+<li>A solver that marches in time is such a composition, so backprop through it is the adjoint recurrence.</li>
+<li>A solver that reaches a steady state defines its state <em>implicitly</em>; that link’s derivative rule is a linear solve, and that solve is the classical adjoint method (MacAyeal 1993).</li>
+</ul>
+<p>(This is a composition-first retelling of the companion lecture. The destination, “backprop is the adjoint,” is the same.)</p>
+<div id="a208a2cf" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-07-02T17:20:47.648473Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-07-02T17:20:47.648353Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-07-02T17:20:48.667619Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-07-02T17:20:48.666670Z&quot;}}" data-execution_count="1">
+<details open="" class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax, jax.numpy <span class="im">as</span> jnp, numpy <span class="im">as</span> np, diffrax <span class="im">as</span> dfx</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>jax.config.update(<span class="st">"jax_enable_x64"</span>, <span class="va">True</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"jax"</span>, jax.__version__, <span class="st">"| diffrax"</span>, dfx.__version__)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>jax 0.10.2 | diffrax 0.7.2</code></pre>
+</div>
+</div>
+<section id="a-model-is-a-composition-of-functions" class="level2">
+<h2 class="anchored" data-anchor-id="a-model-is-a-composition-of-functions">1 · A model is a composition of functions</h2>
+<p>Write the model as a chain of operations. The <strong>states</strong> <span class="math inline">\(x_k\)</span> are what the model computes (activations in a network, or a physical field such as velocity or thickness in a solver). The <strong>parameters</strong> <span class="math inline">\(\theta\)</span> are what we differentiate with respect to (network weights, or a physical parameter such as a sliding coefficient <span class="math inline">\(\beta\)</span>):</p>
+<p><span class="math display">\[x_0 = \text{input},\qquad x_{k+1} = f_k(x_k,\theta)\ \ (k=0,\dots,N-1),\qquad L = \ell(x_0,x_1,\dots,x_N)\in\mathbb{R}.\]</span></p>
+<p>Every state, and therefore the loss, is a function of <span class="math inline">\(\theta\)</span> through the chain. We let the loss depend on the <em>whole trajectory</em> (a data misfit summed over time, say); the familiar case <span class="math inline">\(L=\ell(x_N)\)</span> is just the version where only the last term is present.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>What <span class="math inline">\(x\)</span> and <span class="math inline">\(\theta\)</span> are
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li><em>Neural network</em>: <span class="math inline">\(x_k\)</span> are the layer activations, <span class="math inline">\(\theta\)</span> the weights and biases, <span class="math inline">\(L\)</span> the training loss.</li>
+<li><em>Glacier inversion</em>: <span class="math inline">\(x_k\)</span> is the solver’s state (velocity, thickness), <span class="math inline">\(\theta\)</span> a parameter such as the sliding coefficient <span class="math inline">\(\beta\)</span>, <span class="math inline">\(L\)</span> the misfit to observations.</li>
+</ul>
+</div>
+</div>
+<p><strong>The chain rule.</strong> Each step feeds <span class="math inline">\(\theta\)</span> in two ways: directly through its <span class="math inline">\(\theta\)</span> argument, and indirectly through <span class="math inline">\(x_k\)</span>, which already depends on <span class="math inline">\(\theta\)</span>. Differentiating the whole model therefore just chains the local derivatives of its parts. Two ingredients are enough:</p>
+<ul>
+<li>the <em>local</em> derivatives of each operation: its Jacobian <span class="math inline">\(J_k := \partial f_k/\partial x_k\)</span>, and its parameter-derivative <span class="math inline">\(\partial f_k/\partial\theta\)</span>;</li>
+<li>a <em>rule</em> to compose them: the chain rule, which strings the <span class="math inline">\(J_k\)</span> into a product (the sensitivity of <span class="math inline">\(x_N\)</span> to <span class="math inline">\(x_0\)</span> is <span class="math inline">\(J_{N-1}\cdots J_0\)</span>) and adds each step’s <span class="math inline">\(\theta\)</span>-contribution.</li>
+</ul>
+<p>Automatic differentiation supplies both. The next section makes it concrete: the chain can be swept in two directions, and that choice is the whole story of efficiency.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Why not finite differences or symbolic?
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li><em>Finite differences</em> cost one extra evaluation per parameter, and force a step-size tradeoff (truncation vs.&nbsp;round-off).</li>
+<li><em>Symbolic</em> differentiation of a long program suffers expression swell.</li>
+<li><em>Automatic differentiation</em> sidesteps both, and this notebook is what it computes under the hood.</li>
+</ul>
+</div>
+</div>
+</section>
+<section id="forward-and-reverse-mode" class="level2">
+<h2 class="anchored" data-anchor-id="forward-and-reverse-mode">2 · Forward and reverse mode</h2>
+<p>The chain from §1 can be swept in either direction. Both build the same gradient; they differ in what they propagate and which way.</p>
+<section id="forward-mode-push-sensitivities-forward" class="level3">
+<h3 class="anchored" data-anchor-id="forward-mode-push-sensitivities-forward">Forward mode: push sensitivities forward</h3>
+<p>Carry the <em>sensitivity</em> <span class="math inline">\(t_k := dx_k/d\theta\)</span> from the input toward the output. Each step passes the running sensitivity through its Jacobian and adds its own direct <span class="math inline">\(\theta\)</span>-dependence:</p>
+<p><span class="math display">\[t_0 = 0,\qquad t_{k+1} = J_k\,t_k + \frac{\partial f_k}{\partial\theta},\qquad \frac{dL}{d\theta} = \sum_{k=0}^{N}\frac{\partial L}{\partial x_k}\,t_k.\]</span></p>
+<p>(This is just the derivative of one step <span class="math inline">\(x_{k+1}=f_k(x_k,\theta)\)</span>: the chain rule through <span class="math inline">\(x_k\)</span>, plus the direct <span class="math inline">\(\theta\)</span> term.)</p>
+<ul>
+<li>Runs front to back, alongside the values, so no history is stored (<span class="math inline">\(O(1)\)</span> extra memory).</li>
+<li><span class="math inline">\(t_k\)</span> carries one column per parameter, so the cost scales with the number of parameters.</li>
+<li>One operation at a time this is a <em>Jacobian-vector product</em> (JVP, <code>jax.jvp</code>): push a <em>tangent</em> through.</li>
+</ul>
+</section>
+<section id="reverse-mode-pull-sensitivities-back" class="level3">
+<h3 class="anchored" data-anchor-id="reverse-mode-pull-sensitivities-back">Reverse mode: pull sensitivities back</h3>
+<p>Carry the <em>adjoint</em> <span class="math inline">\(\lambda_k\)</span> (the loss’s sensitivity to <span class="math inline">\(x_k\)</span>) from the output back toward the input:</p>
+<p><span class="math display">\[\lambda_N = \Big(\frac{\partial L}{\partial x_N}\Big)^{\!\top},\qquad \lambda_k = \Big(\frac{\partial L}{\partial x_k}\Big)^{\!\top} + J_k^{\top}\lambda_{k+1},\qquad \frac{dL}{d\theta} = \sum_{k=0}^{N-1}\lambda_{k+1}^{\top}\,\frac{\partial f_k}{\partial\theta}.\]</span></p>
+<ul>
+<li>Runs back to front, after a forward pass whose states must be kept (hence checkpointing, §5).</li>
+<li>For a scalar loss, one backward pass gives the whole gradient, regardless of the number of parameters.</li>
+<li>One operation at a time this is a <em>vector-Jacobian product</em> (VJP, <code>jax.vjp</code>): pull a <em>cotangent</em> back.</li>
+</ul>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Where the recurrences come from
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Both fall out of one object. Stack the states <span class="math inline">\(U=(x_0,\dots,x_N)\)</span> and write each step as a constraint <span class="math inline">\(g_{k+1}=x_{k+1}-f_k(x_k,\theta)=0\)</span>. Each step touches only the previous one, so <span class="math inline">\(\partial g/\partial U\)</span> is block lower-triangular (<span class="math inline">\(I\)</span> on the diagonal, <span class="math inline">\(-J_k\)</span> just below):</p>
+<p><span class="math display">\[\frac{\partial g}{\partial U}=
+\begin{pmatrix}
+I &amp; &amp; &amp; \\
+-J_0 &amp; I &amp; &amp; \\
+&amp; \ddots &amp; \ddots &amp; \\
+&amp; &amp; -J_{N-1} &amp; I
+\end{pmatrix}.\]</span></p>
+<ul>
+<li><em>Forward</em> solves <span class="math inline">\(\big(\partial g/\partial U\big)\,\tfrac{dU}{d\theta}=-\tfrac{\partial g}{\partial\theta}\)</span> by forward-substitution, top down: the forward recurrence.</li>
+<li><em>Reverse</em> solves the transpose <span class="math inline">\(\big(\partial g/\partial U\big)^{\top}\lambda=\big(\tfrac{\partial L}{\partial U}\big)^{\top}\)</span> by back-substitution, bottom up: the reverse recurrence.</li>
+</ul>
+<p>The same triangular system, solved in opposite directions. (This is also the setup for §4, where an implicit solve makes <span class="math inline">\(\partial g/\partial u\)</span> a general matrix instead of triangular.)</p>
+</div>
+</div>
+<p>The payoff: <strong>each operation only has to supply its own JVP and VJP.</strong> AD chains them to differentiate the whole system, in whichever direction, with no gradient ever written for the full model.</p>
+<p>Which to use, straight from the recurrences above:</p>
+<ul>
+<li><em>Scalar loss, many parameters</em>: reverse wins (one pass, not <span class="math inline">\(n\)</span>). This is training and inversion.</li>
+<li><em>Few inputs, many outputs</em>: forward wins (one pass per input).</li>
+</ul>
+<p>Reverse mode is the default for a scalar loss. On a small neural network, its recurrence is exactly backpropagation, matching <code>jax.grad</code>:</p>
+<div id="80d9580f" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-07-02T17:20:48.668936Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-07-02T17:20:48.668785Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-07-02T17:20:50.176748Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-07-02T17:20:50.175763Z&quot;}}" data-execution_count="2">
+<details open="" class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax.random <span class="im">as</span> jr</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co"># A small MLP: tanh hidden layers, linear output.  Params = list of (W, b).</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>sizes <span class="op">=</span> [<span class="dv">4</span>, <span class="dv">16</span>, <span class="dv">16</span>, <span class="dv">1</span>]</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>keys  <span class="op">=</span> jr.split(jr.PRNGKey(<span class="dv">0</span>), <span class="bu">len</span>(sizes) <span class="op">-</span> <span class="dv">1</span>)</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>params <span class="op">=</span> [(<span class="fl">0.6</span> <span class="op">*</span> jr.normal(k, (n_out, n_in)), jnp.zeros(n_out))</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>          <span class="cf">for</span> k, n_in, n_out <span class="kw">in</span> <span class="bu">zip</span>(keys, sizes[:<span class="op">-</span><span class="dv">1</span>], sizes[<span class="dv">1</span>:])]</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>x_in, y_tgt <span class="op">=</span> jnp.array([<span class="fl">0.3</span>, <span class="op">-</span><span class="fl">0.7</span>, <span class="fl">1.1</span>, <span class="fl">0.2</span>]), jnp.array([<span class="fl">0.5</span>])</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> mlp_loss(params, x):</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    a <span class="op">=</span> x</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> W, b <span class="kw">in</span> params[:<span class="op">-</span><span class="dv">1</span>]:</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>        a <span class="op">=</span> jnp.tanh(W <span class="op">@</span> a <span class="op">+</span> b)          <span class="co"># hidden layers</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    W, b <span class="op">=</span> params[<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> jnp.<span class="bu">sum</span>((W <span class="op">@</span> a <span class="op">+</span> b <span class="op">-</span> y_tgt) <span class="op">**</span> <span class="dv">2</span>)   <span class="co"># linear output + squared error</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>g_ad <span class="op">=</span> jax.grad(mlp_loss)(params, x_in)        <span class="co"># reverse-mode AD</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> hand_backprop(params, x):</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>    <span class="co"># forward pass, storing the states the backward pass will need</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>    a, acts, zs <span class="op">=</span> x, [x], []</span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> W, b <span class="kw">in</span> params[:<span class="op">-</span><span class="dv">1</span>]:</span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>        z <span class="op">=</span> W <span class="op">@</span> a <span class="op">+</span> b<span class="op">;</span> a <span class="op">=</span> jnp.tanh(z)<span class="op">;</span> zs.append(z)<span class="op">;</span> acts.append(a)</span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>    W, b <span class="op">=</span> params[<span class="op">-</span><span class="dv">1</span>]<span class="op">;</span> out <span class="op">=</span> W <span class="op">@</span> a <span class="op">+</span> b</span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>    <span class="co"># backward pass = the adjoint recurrence  lambda_l = (dPhi_l/da_l)^T lambda_{l+1}</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>    lam <span class="op">=</span> <span class="fl">2.0</span> <span class="op">*</span> (out <span class="op">-</span> y_tgt)                   <span class="co"># lambda = dL/d(output)</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>    grads <span class="op">=</span> [(jnp.outer(lam, acts[<span class="op">-</span><span class="dv">1</span>]), lam)]   <span class="co"># output-layer gradients</span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>    lam <span class="op">=</span> params[<span class="op">-</span><span class="dv">1</span>][<span class="dv">0</span>].T <span class="op">@</span> lam                 <span class="co"># push cotangent into last hidden activation</span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> l <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(params) <span class="op">-</span> <span class="dv">2</span>, <span class="op">-</span><span class="dv">1</span>, <span class="op">-</span><span class="dv">1</span>):</span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>        delta   <span class="op">=</span> (<span class="fl">1.0</span> <span class="op">-</span> jnp.tanh(zs[l]) <span class="op">**</span> <span class="dv">2</span>) <span class="op">*</span> lam      <span class="co"># through the tanh</span></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>        grads.insert(<span class="dv">0</span>, (jnp.outer(delta, acts[l]), delta))</span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>        lam <span class="op">=</span> params[l][<span class="dv">0</span>].T <span class="op">@</span> delta                      <span class="co"># (dPhi/da)^T = W^T (.)</span></span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> grads</span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a>g_hand <span class="op">=</span> hand_backprop(params, x_in)</span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a>worst <span class="op">=</span> <span class="bu">max</span>(<span class="bu">float</span>(jnp.<span class="bu">max</span>(jnp.<span class="bu">abs</span>(a <span class="op">-</span> b)))</span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span> (gw, gb), (hw, hb) <span class="kw">in</span> <span class="bu">zip</span>(g_ad, g_hand) <span class="cf">for</span> a, b <span class="kw">in</span> [(gw, hw), (gb, hb)])</span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"max |AD - hand-coded backprop| over all weights &amp; biases = </span><span class="sc">{</span>worst<span class="sc">:.2e}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>max |AD - hand-coded backprop| over all weights &amp; biases = 4.44e-16</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="a-time-stepping-solver-is-a-composition" class="level2">
+<h2 class="anchored" data-anchor-id="a-time-stepping-solver-is-a-composition">3 · A time-stepping solver is a composition</h2>
+<p>A solver that marches in time, <span class="math inline">\(u_{k+1}=\Phi(u_k,\theta)\)</span>, is exactly a composition of steps, so nothing new is needed:</p>
+<ul>
+<li>The states are the time levels; the operations are the time steps.</li>
+<li>Reverse mode chains the steps’ VJPs backward in time. This is the <em>discrete adjoint</em> of a time-dependent model, and it is what the glacier UDE uses.</li>
+<li>A shared parameter accumulates one gradient contribution per step (a weight reused everywhere gets a gradient summed over all its uses).</li>
+</ul>
+<p>The only practical wrinkle is scale: a long solve has many steps, so storing every state for the backward pass is expensive. That is the checkpointing question of §5.</p>
+</section>
+<section id="when-the-state-is-an-implicit-solve-the-adjoint-method" class="level2">
+<h2 class="anchored" data-anchor-id="when-the-state-is-an-implicit-solve-the-adjoint-method">4 · When the state is an implicit solve: the adjoint method</h2>
+<p>The case that looks harder but is not. Sometimes the state is not produced by an explicit march; it is defined <em>implicitly</em>, as the solution of an equation:</p>
+<p><span class="math display">\[g(u,\theta)=0 \quad\Longrightarrow\quad u=u(\theta).\]</span></p>
+<ul>
+<li>The examples are steady states, fixed points, and linear or nonlinear solves.</li>
+<li><span class="math inline">\(u(\theta)\)</span> is still a function (implicit function theorem), and “solve for <span class="math inline">\(u\)</span>” is still one link in the composition.</li>
+<li>The only new question: what is that link’s VJP?</li>
+</ul>
+<p>Differentiate the constraint, <span class="math inline">\(\dfrac{\partial g}{\partial u}\dfrac{du}{d\theta}+\dfrac{\partial g}{\partial\theta}=0\)</span>, giving <span class="math inline">\(\dfrac{du}{d\theta}=-\big(\tfrac{\partial g}{\partial u}\big)^{-1}\tfrac{\partial g}{\partial\theta}\)</span>. We never form that inverse. Given the cotangent <span class="math inline">\(\bar u=\partial L/\partial u\)</span> arriving at <span class="math inline">\(u\)</span>, group the expensive factor into an adjoint variable <span class="math inline">\(\lambda\)</span>:</p>
+<p><span class="math display">\[\Big(\frac{\partial g}{\partial u}\Big)^{\!\top}\lambda = \Big(\frac{\partial L}{\partial u}\Big)^{\!\top}
+\quad\text{(the adjoint equation)},\qquad
+\frac{dL}{d\theta} = \frac{\partial L}{\partial\theta} - \lambda^{\top}\frac{\partial g}{\partial\theta}.\]</span></p>
+<p>That is the classical adjoint method of PDE-constrained optimization (MacAyeal 1993). In the composition picture it is simply the VJP of the “solve” operation.</p>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Important</span>The equivalence, in one place
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Every link has a VJP, and reverse mode chains them. Only the work per link differs:</p>
+<ul>
+<li>an <em>explicit</em> link (a layer, a time step) has a matrix-vector VJP; chaining them is backprop (§2, §3);</li>
+<li>an <em>implicit</em> link (a steady-state solve) has a VJP that is itself a transposed linear solve, the adjoint equation.</li>
+</ul>
+<p>For an explicit solver the system Jacobian is triangular, so the “solve” is free (substitution); for an implicit one it is a general matrix, so the adjoint is a genuine solve. Same chain rule, same reverse sweep; one link just does more.</p>
+</div>
+</div>
+<p>The efficiency is the point: forming <span class="math inline">\(du/d\theta\)</span> costs one solve per parameter, whereas the adjoint costs one transposed solve regardless of the number of parameters. On a small linear constraint <span class="math inline">\(g(u,\theta)=Au-b(\theta)\)</span>:</p>
+<div id="c4539268" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-07-02T17:20:51.552297Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-07-02T17:20:51.552172Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-07-02T17:20:52.524685Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-07-02T17:20:52.523736Z&quot;}}" data-execution_count="5">
+<details open="" class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Constrained problem:  g(u, theta) = A u - b(theta) = 0  -&gt;  u(theta) = A^{-1} b(theta).</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Loss L(u) = 1/2 ||u - u_target||^2.  DIRECT (one solve per parameter) vs ADJOINT (one solve).</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>n, p <span class="op">=</span> <span class="dv">6</span>, <span class="dv">5</span>                                                     <span class="co"># state dim, number of parameters</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>Mn <span class="op">=</span> jax.random.normal(jax.random.PRNGKey(<span class="dv">0</span>), (n, n))</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>A  <span class="op">=</span> Mn <span class="op">@</span> Mn.T <span class="op">+</span> n <span class="op">*</span> jnp.eye(n)                                 <span class="co"># SPD system matrix</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>B  <span class="op">=</span> jax.random.normal(jax.random.PRNGKey(<span class="dv">1</span>), (n, p))          <span class="co"># b(theta) = B @ theta</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>theta    <span class="op">=</span> jax.random.normal(jax.random.PRNGKey(<span class="dv">2</span>), (p,))</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>u_target <span class="op">=</span> jnp.ones(n)</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> solve_u(theta): <span class="cf">return</span> jnp.linalg.solve(A, B <span class="op">@</span> theta)      <span class="co"># the forward solve, u(theta)</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>u    <span class="op">=</span> solve_u(theta)</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>dLdu <span class="op">=</span> u <span class="op">-</span> u_target                                            <span class="co"># dL/du</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="co"># DIRECT / tangent-linear:  build du/dtheta column by column -&gt; one linear solve PER PARAMETER</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>dudtheta    <span class="op">=</span> jnp.stack([jnp.linalg.solve(A, B[:, j]) <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(p)], axis<span class="op">=</span><span class="dv">1</span>)   <span class="co"># p solves</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>grad_direct <span class="op">=</span> dLdu <span class="op">@</span> dudtheta</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a><span class="co"># ADJOINT / cotangent:  ONE transposed solve, then dot products</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>lam          <span class="op">=</span> jnp.linalg.solve(A.T, dLdu)                     <span class="co"># (dg/du)^T lambda = (dL/du)^T  &lt;- 1 solve</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>grad_adjoint <span class="op">=</span> lam <span class="op">@</span> B                                         <span class="co"># dL/dtheta = -lambda^T (dg/dtheta), dg/dtheta = -B</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>g_jax <span class="op">=</span> jax.grad(<span class="kw">lambda</span> th: <span class="fl">0.5</span> <span class="op">*</span> jnp.<span class="bu">sum</span>((solve_u(th) <span class="op">-</span> u_target) <span class="op">**</span> <span class="dv">2</span>))(theta)</span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"parameters p = </span><span class="sc">{</span>p<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  direct  : </span><span class="sc">{</span>p<span class="sc">}</span><span class="ss"> linear solves   grad = </span><span class="sc">{</span>np<span class="sc">.</span><span class="bu">round</span>(np.array(grad_direct), <span class="dv">5</span>)<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  adjoint : 1 linear solve      grad = </span><span class="sc">{</span>np<span class="sc">.</span><span class="bu">round</span>(np.array(grad_adjoint), <span class="dv">5</span>)<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"  adjoint matches direct: </span><span class="sc">{</span><span class="bu">bool</span>(jnp.allclose(grad_direct, grad_adjoint))<span class="sc">}</span><span class="ss">"</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>      <span class="ss">f"   |   matches jax.grad: </span><span class="sc">{</span><span class="bu">bool</span>(jnp.allclose(grad_adjoint, g_jax))<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>parameters p = 5
+  direct  : 5 linear solves   grad = [ 0.25687 -0.03022  0.0516  -0.32131  0.01129]
+  adjoint : 1 linear solve      grad = [ 0.25687 -0.03022  0.0516  -0.32131  0.01129]
+  adjoint matches direct: True   |   matches jax.grad: True</code></pre>
+</div>
+</div>
+</section>
+<section id="checkpointing-differentiating-through-long-solves" class="level2">
+<h2 class="anchored" data-anchor-id="checkpointing-differentiating-through-long-solves">5 · Checkpointing: differentiating through long solves</h2>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Common misconception
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>By default, neither JAX nor PyTorch checkpoints. The default reverse pass is maximum-memory, zero-recompute: save every intermediate, consume it in reverse.</p>
+<ul>
+<li><em>PyTorch (eager):</em> saves activations; opt-in recompute is <code>torch.utils.checkpoint</code>.</li>
+<li><em>JAX:</em> <code>jax.grad</code> saves residuals; opt-in rematerialization is <code>jax.checkpoint</code> (<code>jax.remat</code>).</li>
+<li><em>Caveats:</em> XLA can rematerialize to fit a memory budget (heuristic), and <code>torch.compile</code>’s min-cut partitioner makes automatic save-vs-recompute choices; neither is the principled <span class="math inline">\(O(\log N)\)</span> schedule.</li>
+</ul>
+</div>
+</div>
+<p>Checkpointing trades memory for recomputation: store a few states, recompute the rest during the backward pass. The optimal schedule (Griewank and Walther’s <code>revolve</code>) is <span class="math inline">\(O(\log N)\)</span> memory at <span class="math inline">\(O(N\log N)\)</span> compute.</p>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Important</span>Why this matters for time-dependent inversions and UDEs
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Training a UDE means backpropagating through every time step of the forward solve. Reverse mode through the steps (§3) needs each forward state <span class="math inline">\(u_k\)</span> to apply <span class="math inline">\((\partial\Phi_k/\partial u_k)^{\top}\)</span>, so storing all of them is <span class="math inline">\(O(N)\)</span> in the number of steps:</p>
+<ul>
+<li>our toy glacier: ~600 steps for a spin-up, so storing all is fine;</li>
+<li>a real inversion (Bolibar et al.: ~<span class="math inline">\(10^5\)</span> ODEs over a 2-D grid, many years): storing every state is infeasible.</li>
+</ul>
+<p>Checkpointing keeps only <span class="math inline">\(O(\log N)\)</span> states and recomputes the rest forward, which is safe because the forward solve only ever runs forward in time. This is why the glacier solver passes <code>RecursiveCheckpointAdjoint</code>.</p>
+</div>
+</div>
+<p>Hand-rolled <code>revolve</code> on a chain of <span class="math inline">\(N\)</span> time steps, to see the memory and compute trade and confirm the gradient is unchanged:</p>
+<div id="c526796b" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-07-02T17:20:52.526144Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-07-02T17:20:52.525992Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-07-02T17:20:52.860311Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-07-02T17:20:52.859269Z&quot;}}" data-execution_count="6">
+<details open="" class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>N, theta <span class="op">=</span> <span class="dv">64</span>, <span class="fl">0.99</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> phi(y):  <span class="cf">return</span> np.tanh(y) <span class="op">+</span> theta <span class="op">*</span> y</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> dphi(y): <span class="cf">return</span> (<span class="dv">1</span> <span class="op">-</span> np.tanh(y) <span class="op">**</span> <span class="dv">2</span>) <span class="op">+</span> theta</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> store_all(y0):</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    ys <span class="op">=</span> [y0]</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(N): ys.append(phi(ys[<span class="op">-</span><span class="dv">1</span>]))</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    lam <span class="op">=</span> ys[N]</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(N <span class="op">-</span> <span class="dv">1</span>, <span class="op">-</span><span class="dv">1</span>, <span class="op">-</span><span class="dv">1</span>): lam <span class="op">=</span> dphi(ys[k]) <span class="op">*</span> lam</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> lam, <span class="bu">len</span>(ys), N</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> checkpointed(y0, s):</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>    ckpts, y <span class="op">=</span> {<span class="dv">0</span>: y0}, y0</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, N <span class="op">+</span> <span class="dv">1</span>):</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>        y <span class="op">=</span> phi(y)</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> k <span class="op">%</span> s <span class="op">==</span> <span class="dv">0</span>: ckpts[k] <span class="op">=</span> y</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>    lam, fwd, peak <span class="op">=</span> y, N, <span class="bu">max</span>(<span class="bu">len</span>(ckpts), s)</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(N <span class="op">-</span> <span class="dv">1</span>, <span class="op">-</span><span class="dv">1</span>, <span class="op">-</span><span class="dv">1</span>):</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> k <span class="kw">in</span> ckpts:</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>            yk <span class="op">=</span> ckpts[k]</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>            base <span class="op">=</span> <span class="bu">max</span>(c <span class="cf">for</span> c <span class="kw">in</span> ckpts <span class="cf">if</span> c <span class="op">&lt;</span> k)<span class="op">;</span> yk <span class="op">=</span> ckpts[base]</span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(k <span class="op">-</span> base): yk <span class="op">=</span> phi(yk)<span class="op">;</span> fwd <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>        lam <span class="op">=</span> dphi(yk) <span class="op">*</span> lam</span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> lam, peak, fwd</span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>g0, m0, f0 <span class="op">=</span> store_all(<span class="fl">1.0</span>)</span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>g1, m1, f1 <span class="op">=</span> checkpointed(<span class="fl">1.0</span>, s<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"store-all    : ~</span><span class="sc">{</span>m0<span class="sc">:2d}</span><span class="ss"> states, </span><span class="sc">{</span>f0<span class="sc">:3d}</span><span class="ss"> forward evals"</span>)</span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"checkpointed : ~</span><span class="sc">{</span>m1<span class="sc">:2d}</span><span class="ss"> states, </span><span class="sc">{</span>f1<span class="sc">:3d}</span><span class="ss"> forward evals   (same gradient: </span><span class="sc">{</span><span class="bu">abs</span>(g0<span class="op">-</span>g1) <span class="op">&lt;</span> <span class="fl">1e-9</span><span class="sc">}</span><span class="ss">)"</span>)</span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> deep(x):</span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">50</span>): x <span class="op">=</span> jnp.tanh(x) <span class="op">+</span> <span class="fl">0.1</span> <span class="op">*</span> x</span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> jnp.<span class="bu">sum</span>(x <span class="op">**</span> <span class="dv">2</span>)</span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a>x0 <span class="op">=</span> jnp.linspace(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">8</span>)</span>
+<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"jax.grad == jax.grad(jax.checkpoint(...)):"</span>, <span class="bu">bool</span>(jnp.allclose(jax.grad(deep)(x0), jax.grad(jax.checkpoint(deep))(x0))))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>store-all    : ~65 states,  64 forward evals
+checkpointed : ~ 9 states, 288 forward evals   (same gradient: True)
+jax.grad == jax.grad(jax.checkpoint(...)): True</code></pre>
+</div>
+</div>
+</section>
+<section id="takeaways" class="level2">
+<h2 class="anchored" data-anchor-id="takeaways">6 · Takeaways</h2>
+<ul>
+<li>Write the model as a composition and chain the VJPs; that is reverse-mode AD, and for a scalar loss it is backprop.</li>
+<li>Each operation only needs its own JVP and VJP; AD assembles the gradient of the whole system.</li>
+<li>A time-stepping solver is such a composition, so backprop through time is the discrete adjoint.</li>
+<li>An implicit solve is the one link whose VJP is itself a linear solve, and that solve is the adjoint method of PDE-constrained optimization.</li>
+</ul>
+<section id="references" class="level3">
+<h3 class="anchored" data-anchor-id="references">References</h3>
+<ul>
+<li>MacAyeal (1993), <em>Control methods in ice-sheet modeling</em>, J. Glaciol. 39(131).</li>
+<li>Griewank and Walther (2008), <em>Evaluating Derivatives</em> (SIAM); Griewank (1992), <code>revolve</code>, Optim. Methods Softw. 1.</li>
+<li>Baydin et al.&nbsp;(2018), <em>AD in machine learning: a survey</em>, JMLR 18(153).</li>
+<li>Chen et al.&nbsp;(2018), <em>Neural ODEs</em>, NeurIPS; Kidger (2021), <em>On Neural Differential Equations</em> (thesis; <code>diffrax</code>).</li>
+<li>Sapienza et al.&nbsp;(2024), <em>Differentiable programming for differential equations: a review</em>, arXiv:2406.09699.</li>
+</ul>
+<hr>
+<p><em>Composition-first companion to the UDE glaciology lecture.</em></p>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+    const viewSource = window.document.getElementById('quarto-view-source') ||
+                       window.document.getElementById('quarto-code-tools-source');
+    if (viewSource) {
+      const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
+      viewSource.addEventListener("click", function(e) {
+        if (sourceUrl) {
+          // rstudio viewer pane
+          if (/\bcapabilities=\b/.test(window.location)) {
+            window.open(sourceUrl);
+          } else {
+            window.location.href = sourceUrl;
+          }
+        } else {
+          const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
+          modal.show();
+        }
+        return false;
+      });
+    }
+    function toggleCodeHandler(show) {
+      return function(e) {
+        const detailsSrc = window.document.querySelectorAll(".cell > details > .sourceCode");
+        for (let i=0; i<detailsSrc.length; i++) {
+          const details = detailsSrc[i].parentElement;
+          if (show) {
+            details.open = true;
+          } else {
+            details.removeAttribute("open");
+          }
+        }
+        const cellCodeDivs = window.document.querySelectorAll(".cell > .sourceCode");
+        const fromCls = show ? "hidden" : "unhidden";
+        const toCls = show ? "unhidden" : "hidden";
+        for (let i=0; i<cellCodeDivs.length; i++) {
+          const codeDiv = cellCodeDivs[i];
+          if (codeDiv.classList.contains(fromCls)) {
+            codeDiv.classList.remove(fromCls);
+            codeDiv.classList.add(toCls);
+          } 
+        }
+        return false;
+      }
+    }
+    const hideAllCode = window.document.getElementById("quarto-hide-all-code");
+    if (hideAllCode) {
+      hideAllCode.addEventListener("click", toggleCodeHandler(false));
+    }
+    const showAllCode = window.document.getElementById("quarto-show-all-code");
+    if (showAllCode) {
+      showAllCode.addEventListener("click", toggleCodeHandler(true));
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+<script src="AD_adjoints_composition_first_files/libs/quarto-html/zenscroll-min.js"></script>
+</body></html>

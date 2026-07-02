@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Universal Differential Equations for Glaciology – Glaciology + Machine Learning</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-3dfdabff9cb45623dc2121e8c2e89e68.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<style>html{ scroll-behavior: smooth; }</style>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="floating nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">Glaciology + Machine Learning</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="./index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link active" href="./UDE_glaciology_lecture.html" aria-current="page"> 
+<span class="menu-text">UDEs</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./AD_and_adjoints_concepts.html"> 
+<span class="menu-text">Adjoints &amp; AD</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./gaussian_processes.html"> 
+<span class="menu-text">Gaussian Processes</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul class="collapse">
+  <li><a href="#why-universal-differential-equations" id="toc-why-universal-differential-equations" class="nav-link active" data-scroll-target="#why-universal-differential-equations">1 · Why universal differential equations?</a></li>
+  <li><a href="#example-ude-sia-with-learned-a" id="toc-example-ude-sia-with-learned-a" class="nav-link" data-scroll-target="#example-ude-sia-with-learned-a">2 · Example UDE: SIA with Learned A</a></li>
+  <li><a href="#ml-reminders-the-parts-we-lean-on" id="toc-ml-reminders-the-parts-we-lean-on" class="nav-link" data-scroll-target="#ml-reminders-the-parts-we-lean-on">3 · ML reminders (the parts we lean on)</a></li>
+  <li><a href="#the-ude-idea-training-as-pde-constrained-optimization" id="toc-the-ude-idea-training-as-pde-constrained-optimization" class="nav-link" data-scroll-target="#the-ude-idea-training-as-pde-constrained-optimization">4 · The UDE idea: training as PDE-constrained optimization</a></li>
+  <li><a href="#worked-example-recovering-glens-creep-parameter-at" id="toc-worked-example-recovering-glens-creep-parameter-at" class="nav-link" data-scroll-target="#worked-example-recovering-glens-creep-parameter-at">5 · Worked example — recovering Glen’s creep parameter <span class="math inline">\(A(T)\)</span></a></li>
+  <li><a href="#from-the-toy-to-the-real-thing-bolibar-et-al.-2023" id="toc-from-the-toy-to-the-real-thing-bolibar-et-al.-2023" class="nav-link" data-scroll-target="#from-the-toy-to-the-real-thing-bolibar-et-al.-2023">6 · From the toy to the real thing: Bolibar et al.&nbsp;(2023)</a></li>
+  <li><a href="#pitfalls-frontier" id="toc-pitfalls-frontier" class="nav-link" data-scroll-target="#pitfalls-frontier">7 · Pitfalls &amp; frontier</a></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">8 · References</a></li>
+  </ul>
+</nav>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<div class="quarto-title-block"><div><h1 class="title">Universal Differential Equations for Glaciology</h1><button type="button" class="btn code-tools-button dropdown-toggle" id="quarto-code-tools-menu" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi"></i> Code</button><ul class="dropdown-menu dropdown-menu-end" aria-labelelledby="quarto-code-tools-menu"><li><a id="quarto-show-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Show All Code</a></li><li><a id="quarto-hide-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Hide All Code</a></li></ul></div></div>
+<p class="subtitle lead">Learning the hidden physics of ice flow with differentiable programming</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p><strong>Main idea.</strong> Keep the physics you trust, and use a flexible parameterization — a neural network — to learn the parts you don’t. Then fit it by differentiating <em>through</em> the ice-flow solver.</p>
+<section id="roadmap" class="level3">
+<h3 class="anchored" data-anchor-id="roadmap">Roadmap</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 30%">
+<col style="width: 70%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>§</th>
+<th>Topic</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>Why UDEs? — the gap between physics and data-driven models</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>Glacier physics, briefly — the Shallow Ice Approximation: known vs.&nbsp;unknown</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td>ML reminders — and the one new wrinkle (differentiating through a solver)</td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td>The UDE idea — training as PDE-constrained optimization</td>
+</tr>
+<tr class="odd">
+<td>5</td>
+<td><strong>Worked example</strong> — recover <span class="math inline">\(A(T)\)</span> from velocities (live)</td>
+</tr>
+<tr class="even">
+<td>6</td>
+<td>The real thing — Bolibar et al.&nbsp;(2023) / ODINN.jl</td>
+</tr>
+<tr class="odd">
+<td>7</td>
+<td>Pitfalls &amp; frontier</td>
+</tr>
+<tr class="even">
+<td>8</td>
+<td>Exercises · 9 References</td>
+</tr>
+</tbody>
+</table>
+<div id="4b8ecccc" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-07-01T21:59:57.418366Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-07-01T21:59:57.418243Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-07-01T21:59:58.268400Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-07-01T21:59:58.267279Z&quot;}}" data-execution_count="1">
+<details open="" class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax, jax.numpy <span class="im">as</span> jnp, numpy <span class="im">as</span> np</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> diffrax <span class="im">as</span> dfx, equinox <span class="im">as</span> eqx, optax, optimistix <span class="im">as</span> optx</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> time</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>jax.config.update(<span class="st">"jax_enable_x64"</span>, <span class="va">True</span>)   <span class="co"># ice flow is stiff -&gt; use 64-bit floats</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>plt.rcParams.update({<span class="st">"figure.dpi"</span>: <span class="dv">110</span>, <span class="st">"font.size"</span>: <span class="dv">11</span>, <span class="st">"axes.grid"</span>: <span class="va">True</span>,</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"grid.alpha"</span>: <span class="fl">0.3</span>, <span class="st">"axes.spines.top"</span>: <span class="va">False</span>, <span class="st">"axes.spines.right"</span>: <span class="va">False</span>})</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"jax"</span>, jax.__version__, <span class="st">"| diffrax"</span>, dfx.__version__, <span class="st">"|"</span>, jax.devices())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>jax 0.10.2 | diffrax 0.7.2 | [CpuDevice(id=0)]</code></pre>
+</div>
+</div>
+</section>
+<section id="why-universal-differential-equations" class="level2">
+<h2 class="anchored" data-anchor-id="why-universal-differential-equations">1 · Why universal differential equations?</h2>
+<p>Two ways to model a glacier, each with a weakness:</p>
+<p><strong>Physics</strong></p>
+<ul>
+<li>Built from conservation laws.</li>
+<li>Interpretable and extrapolates, <em>but</em> only as good as its weakest assumption, and contains emperical closure we don’t really know.</li>
+</ul>
+<p><strong>Data Driven (Machine learning)</strong></p>
+<ul>
+<li>Can fit almost anything <em>but</em> is data-hungry, ignores known physics, and doesn’t extrapolate.</li>
+</ul>
+<p>A <strong>Universal Differential Equation (UDE)</strong> keeps the trusted structure and replaces <em>only the uncertain closure</em> with a learnable function <span class="math inline">\(\mathcal{U}_\theta\)</span> (a small neural network):</p>
+<p><span class="math display">\[\frac{du}{dt} = f\big(u, t,\; \mathcal{U}_\theta(u,t)\big).\]</span></p>
+<p>We fit <span class="math inline">\(\theta\)</span> so the <em>solution</em> matches observations. Because we infer a whole <strong>function</strong>, this is <strong>functional inversion</strong> (Rackauckas et al., 2020; Bolibar et al., 2023).</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>The key idea
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li>We <em>trust</em> the conservation laws (mass, momentum) but are <em>unsure</em> about the constitutive closures like how ice deforms (Glen’s law), how it slides, how mass balance depends on climate.</li>
+<li>A UDE learns those closures while keeping the conservation laws intact.</li>
+</ul>
+</div>
+</div>
+</section>
+<section id="example-ude-sia-with-learned-a" class="level2">
+<h2 class="anchored" data-anchor-id="example-ude-sia-with-learned-a">2 · Example UDE: SIA with Learned A</h2>
+<ul>
+<li>Let’s suppose that we trust the physics in the SIA model, but we don’t know how to constrain the rate factor <span class="math inline">\(A\)</span></li>
+<li>We might know that <span class="math inline">\(A\)</span> depends on ice temperature, but we’re not sure what the relationship is</li>
+</ul>
+<p><span class="math display">\[\frac{\partial H}{\partial t} = \dot b + \frac{\partial}{\partial x}\!\left(D\,\frac{\partial S}{\partial x}\right),
+\qquad D = \Gamma\,H^{\,n+2}\Big|\partial_x S\Big|^{\,n-1},
+\qquad \Gamma = \frac{2A}{n+2}(\rho g)^n,\]</span></p>
+<p>with <span class="math inline">\(S = b + H\)</span> (surface), <span class="math inline">\(b\)</span> bedrock, and <span class="math inline">\(\dot b\)</span> climatic mass balance.</p>
+<p>The observable surface velocity comes from the same physics: <span class="math inline">\(\,u_s = \tfrac{2A}{n+1}(\rho g)^n H^{\,n+1}\big|\partial_x S\big|^{\,n}.\)</span></p>
+<p>The split between what we trust and what we don’t <em>is</em> the UDE:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Trusted</th>
+<th>Uncertain (the closure to learn)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Mass conservation + SIA</td>
+<td><strong>Glen’s creep parameter <span class="math inline">\(A\)</span></strong> — ice “softness”</td>
+</tr>
+</tbody>
+</table>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Our target
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><span class="math inline">\(A\)</span> depends on temperature, water content, and fabric (Cuffey &amp; Paterson, 2010): warmer ice is <em>softer</em> (larger <span class="math inline">\(A\)</span>). It is usually a tuned constant — but it should be a <em>function</em> of climate. <strong>That function is what we learn.</strong></p>
+</div>
+</div>
+</section>
+<section id="ml-reminders-the-parts-we-lean-on" class="level2">
+<h2 class="anchored" data-anchor-id="ml-reminders-the-parts-we-lean-on">3 · ML reminders (the parts we lean on)</h2>
+<p>You already know these — three quick reminders, then the one new wrinkle:</p>
+<ul>
+<li><strong>A neural network is a flexible parametric function</strong> <span class="math inline">\(\mathcal{U}_\theta\)</span> with knobs <span class="math inline">\(\theta\)</span> that can approximate any continuous function.</li>
+<li><strong>Training = minimizing a loss <span class="math inline">\(L(\theta)\)</span> by gradient descent</strong> (<span class="math inline">\(\theta \leftarrow \theta - \eta\,\nabla_\theta L\)</span>; Adam is a smarter version).</li>
+</ul>
+<p>The one new wrinkle in a UDE: the quantity we differentiate is the output of an <strong>ODE / PDE solver</strong>.</p>
+</section>
+<section id="the-ude-idea-training-as-pde-constrained-optimization" class="level2">
+<h2 class="anchored" data-anchor-id="the-ude-idea-training-as-pde-constrained-optimization">4 · The UDE idea: training as PDE-constrained optimization</h2>
+<p>This is the conceptual heart of the lecture — the bridge from ordinary ML to physics.</p>
+<p><strong>Ordinary ML</strong> minimizes a loss directly over the network’s predictions:</p>
+<p><span class="math display">\[\min_\theta\; L(\mathcal{U}_\theta).\]</span></p>
+<p><strong>A UDE</strong> minimizes the same kind of misfit, but the prediction is only defined <em>through the solution of a differential equation</em>. The loss depends on the state <span class="math inline">\(u\)</span>, and <span class="math inline">\(u\)</span> is constrained to satisfy the physics:</p>
+<p><span class="math display">\[\min_\theta\; L(u,\theta)\quad\text{subject to}\quad \frac{du}{dt}=f\big(u,t,\mathcal{U}_\theta(u,t)\big).\]</span></p>
+<p>That single “subject to” is the whole difference. It turns training into a <strong>PDE-constrained optimization</strong> problem: the conservation laws are a <em>hard constraint</em> the optimizer must respect, not something it can fit away.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+<col style="width: 20%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>Pure physics</th>
+<th><strong>UDE (grey box)</strong></th>
+<th>Neural ODE</th>
+<th>Pure ML</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>RHS</td>
+<td>known <span class="math inline">\(f\)</span></td>
+<td><strong>known structure + learned <span class="math inline">\(\mathcal{U}_\theta\)</span></strong></td>
+<td>all network</td>
+<td>no DE</td>
+</tr>
+<tr class="even">
+<td>Data needed</td>
+<td>calibration</td>
+<td><strong>moderate</strong></td>
+<td>a lot</td>
+<td>a lot</td>
+</tr>
+<tr class="odd">
+<td>Extrapolates / interpretable</td>
+<td>yes</td>
+<td><strong>largely yes</strong></td>
+<td>weakly</td>
+<td>no</td>
+</tr>
+</tbody>
+</table>
+<p>To take a gradient step we need <span class="math inline">\(\nabla_\theta L\)</span> — but <span class="math inline">\(L\)</span> depends on <span class="math inline">\(\theta\)</span> <em>only through the constrained solution</em> <span class="math inline">\(u\)</span>. Differentiating through that constraint is exactly the classical <strong>adjoint method</strong> of inverse modelling (MacAyeal, 1993). The payoff of differentiable programming: <code>jax.grad</code> “sees through” <code>diffeqsolve</code> and generates the adjoint automatically.</p>
+<section id="hard-vs.-soft-constraints-the-contrast-with-pinns" class="level3">
+<h3 class="anchored" data-anchor-id="hard-vs.-soft-constraints-the-contrast-with-pinns">Hard vs.&nbsp;soft constraints: the contrast with PINNs</h3>
+<p>You have likely already met <strong>PINNs</strong>, which represent the <em>solution</em> with a network and add the PDE residual to the loss as a penalty. In the language above, that is a <strong>penalty method</strong>: it relaxes the physics into the objective — a <strong>soft constraint</strong>.</p>
+<p><span class="math display">\[\text{PINN:}\qquad \min_\phi\; L_{\text{data}}(u_\phi)\;+\;\lambda\,\big\lVert\,\mathcal{R}[u_\phi]\,\big\rVert^2 .\]</span></p>
+<p>A <strong>UDE</strong> instead keeps the physics as a <strong>hard constraint</strong>: an embedded solver returns a state that satisfies the PDE exactly (to tolerance) at <em>every</em> iteration.</p>
+<p><span class="math display">\[\text{UDE:}\qquad \min_\theta\; L_{\text{data}}(u,\theta)\quad\text{subject to}\quad \tfrac{du}{dt}=f\big(u,t,\mathcal{U}_\theta\big).\]</span></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>PINN (soft constraint)</th>
+<th>UDE (hard constraint)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Network represents</td>
+<td>the solution <span class="math inline">\(u_\phi\)</span></td>
+<td>the unknown closure <span class="math inline">\(\mathcal{U}_\theta\)</span> in the RHS</td>
+</tr>
+<tr class="even">
+<td>PDE enters via</td>
+<td>a residual penalty <span class="math inline">\(\lambda\lVert\mathcal{R}[u_\phi]\rVert^2\)</span></td>
+<td>an embedded equation solver</td>
+</tr>
+<tr class="odd">
+<td>Physics satisfied</td>
+<td>approximately, at convergence; sensitive to <span class="math inline">\(\lambda\)</span></td>
+<td>exactly each iteration (to solver tolerance)</td>
+</tr>
+<tr class="even">
+<td>Conservation laws</td>
+<td>not guaranteed</td>
+<td>guaranteed by construction</td>
+</tr>
+</tbody>
+</table>
+<p><em>SINDy</em> (sparse discovery of terms) and <em>Neural ODEs</em> (learn the entire RHS) are the other neighbors; a UDE sits in between — keep the trusted operator, learn only the missing closure. The <code>AD_and_adjoints_concepts</code> companion makes the adjoint connection precise.</p>
+</section>
+</section>
+<section id="worked-example-recovering-glens-creep-parameter-at" class="level2">
+<h2 class="anchored" data-anchor-id="worked-example-recovering-glens-creep-parameter-at">5 · Worked example — recovering Glen’s creep parameter <span class="math inline">\(A(T)\)</span></h2>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Important</span>The inverse problem
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Let’s pretend we trust the SIA but <em>don’t know</em> how <span class="math inline">\(A\)</span> depends on climate. We <em>can</em> observe surface velocities. Can we learn <span class="math inline">\(A(T)\)</span> directly from velocity data, <em>through</em> the ice-flow equation?</p>
+</div>
+</div>
+<p>This is the headline experiment of Bolibar et al.&nbsp;(2023) in miniature, run as a <strong>synthetic twin experiment</strong> so we know the truth and can check:</p>
+<ol type="1">
+<li>Invent a <em>hidden</em> law <span class="math inline">\(A_{\text{true}}(T)\)</span> (warmer ⇒ softer ice).</li>
+<li>Generate “observations”: glaciers at different temperatures, evolved a few decades; record surface velocities.</li>
+<li><em>Forget</em> <span class="math inline">\(A_{\text{true}}\)</span>. Replace <span class="math inline">\(A\)</span> with a network <span class="math inline">\(A_\theta(T)\)</span> and train it to match the velocities.</li>
+<li>Compare recovered <span class="math inline">\(A_\theta(T)\)</span> to the truth.</li>
+</ol>
+<section id="the-known-physics-the-sia-flowline-model" class="level3">
+<h3 class="anchored" data-anchor-id="the-known-physics-the-sia-flowline-model">5.1 The known physics — the SIA flowline model</h3>
+<div id="75afedfb" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-07-01T21:59:58.269914Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-07-01T21:59:58.269723Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-07-01T21:59:58.423894Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-07-01T21:59:58.422558Z&quot;}}" data-execution_count="2">
+<details open="" class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># --- constants (SI units, time in YEARS) -----------------------------------</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>RHO, G <span class="op">=</span> <span class="fl">900.0</span>, <span class="fl">9.81</span>                 <span class="co"># ice density [kg/m^3], gravity [m/s^2]</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>N_GLEN <span class="op">=</span> <span class="fl">3.0</span>                         <span class="co"># Glen exponent (assumed known)</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>A_FLOOR, A_CEIL <span class="op">=</span> <span class="fl">1e-18</span>, <span class="fl">4e-16</span>       <span class="co"># physical band for A [Pa^-3 a^-1]</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co"># --- finite-volume flowline: NX cells (control volumes) of width dx ---------</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>L, NX <span class="op">=</span> <span class="fl">30_000.0</span>, <span class="dv">40</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>dx <span class="op">=</span> L <span class="op">/</span> NX</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> (jnp.arange(NX) <span class="op">+</span> <span class="fl">0.5</span>) <span class="op">*</span> dx      <span class="co"># cell-CENTER positions [m]</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>bed <span class="op">=</span> <span class="fl">2800.0</span> <span class="op">-</span> <span class="fl">0.04</span> <span class="op">*</span> x              <span class="co"># bedrock at cell centers [m]</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>ELA, BETA, CAP <span class="op">=</span> <span class="fl">1800.0</span>, <span class="fl">0.004</span>, <span class="fl">0.8</span>  <span class="co"># equilibrium-line altitude, MB gradient, max accumulation</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> mass_balance(S):</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">"Altitude-dependent surface mass balance [m ice / a]."</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> jnp.clip(BETA <span class="op">*</span> (S <span class="op">-</span> ELA), <span class="va">None</span>, CAP)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<div id="bff748da" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-07-01T21:59:58.425491Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-07-01T21:59:58.425346Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-07-01T21:59:58.429533Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-07-01T21:59:58.428399Z&quot;}}" data-execution_count="3">
+<details open="" class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> sia_rhs(t, H, A):</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">'''dH/dt for the SIA flowline.</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">    Known physics:  dH/dt = b_dot + d/dx( D dS/dx ),  D = (2A/(n+2))(rho g)^n H^(n+2) |dS/dx|^(n-1).</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co">    Fluxes are evaluated on cell faces; `A` is the creep parameter we later replace with a network.'''</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    A <span class="op">=</span> jnp.clip(A, A_FLOOR, A_CEIL)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    H <span class="op">=</span> jnp.clip(H, <span class="fl">0.0</span>)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    S <span class="op">=</span> bed <span class="op">+</span> H                                       <span class="co"># surface elevation at cell centers</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    dSdx   <span class="op">=</span> (S[<span class="dv">1</span>:] <span class="op">-</span> S[:<span class="op">-</span><span class="dv">1</span>]) <span class="op">/</span> dx                    <span class="co"># surface slope on faces</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    H_face <span class="op">=</span> <span class="fl">0.5</span> <span class="op">*</span> (H[<span class="dv">1</span>:] <span class="op">+</span> H[:<span class="op">-</span><span class="dv">1</span>])                   <span class="co"># thickness on faces</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    Gamma  <span class="op">=</span> <span class="fl">2.0</span> <span class="op">*</span> A <span class="op">/</span> (N_GLEN <span class="op">+</span> <span class="fl">2.0</span>) <span class="op">*</span> (RHO <span class="op">*</span> G) <span class="op">**</span> N_GLEN</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    D      <span class="op">=</span> Gamma <span class="op">*</span> H_face <span class="op">**</span> (N_GLEN <span class="op">+</span> <span class="fl">2.0</span>) <span class="op">*</span> jnp.<span class="bu">abs</span>(dSdx) <span class="op">**</span> (N_GLEN <span class="op">-</span> <span class="fl">1.0</span>)</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    q_int  <span class="op">=</span> <span class="op">-</span>D <span class="op">*</span> dSdx                                <span class="co"># ice flux through faces</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    q   <span class="op">=</span> jnp.concatenate([jnp.zeros(<span class="dv">1</span>), q_int, jnp.zeros(<span class="dv">1</span>)])   <span class="co"># no flux at divide &amp; terminus</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    div <span class="op">=</span> <span class="op">-</span>(q[<span class="dv">1</span>:] <span class="op">-</span> q[:<span class="op">-</span><span class="dv">1</span>]) <span class="op">/</span> dx</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    <span class="co"># can't melt absent ice: a SMOOTH limiter (differentiable at the moving front)</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    limiter <span class="op">=</span> jnp.clip(H <span class="op">/</span> <span class="fl">10.0</span>, <span class="fl">0.0</span>, <span class="fl">1.0</span>)</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    bdot <span class="op">=</span> mass_balance(S)</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> jnp.maximum(bdot, <span class="fl">0.0</span>) <span class="op">+</span> jnp.minimum(bdot, <span class="fl">0.0</span>) <span class="op">*</span> limiter <span class="op">+</span> div</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Solver choice
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Ice flow is stiff diffusion (<span class="math inline">\(D \propto H^{n+2}\)</span>), so we integrate with a simple <strong>implicit (backward-Euler)</strong> scheme, which stays stable at large time steps. Each step solves a small nonlinear system (the <code>root_finder</code>).</p>
+</div>
+</div>
+<div id="619985c7" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-07-01T21:59:58.431028Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-07-01T21:59:58.430896Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-07-01T21:59:58.435025Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-07-01T21:59:58.434049Z&quot;}}" data-execution_count="4">
+<details open="" class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Implicit backward-Euler solver. Fixed step; each step solves a nonlinear system.</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>SOLVER <span class="op">=</span> dfx.ImplicitEuler(root_finder<span class="op">=</span>optx.Newton(rtol<span class="op">=</span><span class="fl">1e-5</span>, atol<span class="op">=</span><span class="fl">1e-4</span>, norm<span class="op">=</span>optx.max_norm))</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>DT_YEARS <span class="op">=</span> <span class="fl">0.5</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> solve_sia(A, H0, t1):</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">"Integrate the SIA forward to time t1 [years]; return final thickness."</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> <span class="bu">int</span>(<span class="bu">round</span>(t1 <span class="op">/</span> DT_YEARS))</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    sol <span class="op">=</span> dfx.diffeqsolve(</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>        dfx.ODETerm(sia_rhs), SOLVER, t0<span class="op">=</span><span class="fl">0.0</span>, t1<span class="op">=</span>t1, dt0<span class="op">=</span>DT_YEARS, y0<span class="op">=</span>H0, args<span class="op">=</span>A,</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>        stepsize_controller<span class="op">=</span>dfx.ConstantStepSize(), max_steps<span class="op">=</span>n <span class="op">+</span> <span class="dv">5</span>,</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>        saveat<span class="op">=</span>dfx.SaveAt(t1<span class="op">=</span><span class="va">True</span>),</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>        adjoint<span class="op">=</span>dfx.RecursiveCheckpointAdjoint(),  <span class="co"># checkpointed adjoint: lets jax.grad see through</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> sol.ys[<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> surface_velocity(H, A):</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    <span class="co">"SIA surface speed at cell centers [m/a] -- our observable."</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    A <span class="op">=</span> jnp.clip(A, A_FLOOR, A_CEIL)<span class="op">;</span> H <span class="op">=</span> jnp.clip(H, <span class="fl">0.0</span>)<span class="op">;</span> S <span class="op">=</span> bed <span class="op">+</span> H</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    dSdx <span class="op">=</span> (S[<span class="dv">1</span>:] <span class="op">-</span> S[:<span class="op">-</span><span class="dv">1</span>]) <span class="op">/</span> dx<span class="op">;</span> H_face <span class="op">=</span> <span class="fl">0.5</span> <span class="op">*</span> (H[<span class="dv">1</span>:] <span class="op">+</span> H[:<span class="op">-</span><span class="dv">1</span>])</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    u_face <span class="op">=</span> (<span class="fl">2.0</span> <span class="op">*</span> A <span class="op">/</span> (N_GLEN <span class="op">+</span> <span class="fl">1.0</span>)) <span class="op">*</span> (RHO <span class="op">*</span> G) <span class="op">**</span> N_GLEN <span class="op">\</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>        <span class="op">*</span> H_face <span class="op">**</span> (N_GLEN <span class="op">+</span> <span class="fl">1.0</span>) <span class="op">*</span> jnp.<span class="bu">abs</span>(dSdx) <span class="op">**</span> N_GLEN      <span class="co"># speed on interior faces</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>    u <span class="op">=</span> jnp.concatenate([jnp.zeros(<span class="dv">1</span>), u_face, jnp.zeros(<span class="dv">1</span>)])     <span class="co"># no-flux faces -&gt; 0</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fl">0.5</span> <span class="op">*</span> (u[<span class="dv">1</span>:] <span class="op">+</span> u[:<span class="op">-</span><span class="dv">1</span>])                                 <span class="co"># average faces to cell centers</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+</section>
+<section id="the-hidden-truth-and-the-synthetic-observations" class="level3">
+<h3 class="anchored" data-anchor-id="the-hidden-truth-and-the-synthetic-observations">5.2 The hidden truth and the synthetic observations</h3>
+<p>A controlled recipe, so it’s clear exactly what generates the data:</p>
+<ol type="1">
+<li><strong>Spin up one shared glacier</strong> — evolve from bare bedrock to a quasi-steady starting geometry <span class="math inline">\(H_{\text{init}}\)</span>, used by all eight.</li>
+<li><strong>Pick eight temperatures</strong> (<span class="math inline">\(-25\)</span> to <span class="math inline">\(-3\)</span> °C) and give each its hidden softness <span class="math inline">\(A_{\text{true}}(T)\)</span> — <em>the only thing that differs between glaciers</em>.</li>
+<li><strong>Evolve each for <code>T_OBS</code> = 30 years</strong> under the <strong>identical climate</strong> (the same altitude–mass-balance law). Softer (warmer) ice deforms faster.</li>
+<li><strong>Record surface velocities</strong> <span class="math inline">\(U_{\text{obs}}\)</span> — these are the training targets.</li>
+</ol>
+<div id="f179abe0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-07-01T21:59:58.436246Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-07-01T21:59:58.436129Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-07-01T22:00:00.552742Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-07-01T22:00:00.551503Z&quot;}}" data-execution_count="5">
+<details open="" class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>T_glaciers <span class="op">=</span> jnp.linspace(<span class="op">-</span><span class="fl">25.0</span>, <span class="op">-</span><span class="fl">3.0</span>, <span class="dv">8</span>)        <span class="co"># eight synthetic glaciers</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> A_true(T):</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">"HIDDEN ground-truth creep law: warmer ice -&gt; larger A. [Pa^-3 a^-1]"</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fl">1.0e-16</span> <span class="op">*</span> jnp.exp(<span class="fl">0.13</span> <span class="op">*</span> (T <span class="op">+</span> <span class="fl">10.0</span>))</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>A_REF  <span class="op">=</span> <span class="bu">float</span>(A_true(<span class="op">-</span><span class="fl">14.0</span>))                    <span class="co"># reference A, used only to spin up geometry</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>T_SPIN <span class="op">=</span> <span class="fl">300.0</span>                                   <span class="co"># years to build a quasi-steady start</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>T_OBS  <span class="op">=</span> <span class="fl">30.0</span>                                    <span class="co"># observed transient length [years]</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>H_init <span class="op">=</span> solve_sia(A_REF, jnp.zeros(NX), T_SPIN)            <span class="co"># common starting geometry</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>A_vals <span class="op">=</span> A_true(T_glaciers)</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>H_obs  <span class="op">=</span> jax.vmap(<span class="kw">lambda</span> A: solve_sia(A, H_init, T_OBS))(A_vals)</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>U_obs  <span class="op">=</span> jax.vmap(surface_velocity)(H_obs, A_vals)          <span class="co"># the "observations"</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"starting geometry: max thickness </span><span class="sc">{</span><span class="bu">float</span>(H_init.<span class="bu">max</span>())<span class="sc">:.0f}</span><span class="ss"> m"</span>)</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"observed peak velocity per glacier [m/a]:"</span>, np.<span class="bu">round</span>(np.array(U_obs.<span class="bu">max</span>(axis<span class="op">=</span><span class="dv">1</span>)), <span class="dv">1</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>starting geometry: max thickness 240 m
+observed peak velocity per glacier [m/a]: [ 3.8  5.2  7.4 12.7 21.4 30.7 33.8 44.4]</code></pre>
+</div>
+</div>
+<div id="9a5f5a16" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-07-01T22:00:00.554129Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-07-01T22:00:00.553932Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-07-01T22:00:02.396566Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-07-01T22:00:02.395418Z&quot;}}" data-execution_count="6">
+<details open="" class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Time-resolved evolution for the figure (display only -- no gradients needed here).</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>K, t_save <span class="op">=</span> <span class="dv">7</span>, jnp.linspace(<span class="fl">0.0</span>, T_OBS, <span class="dv">7</span>)</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> evolve_traj(A):</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    sol <span class="op">=</span> dfx.diffeqsolve(dfx.ODETerm(sia_rhs), SOLVER, t0<span class="op">=</span><span class="fl">0.0</span>, t1<span class="op">=</span>T_OBS, dt0<span class="op">=</span>DT_YEARS, y0<span class="op">=</span>H_init,</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>                          args<span class="op">=</span>A, stepsize_controller<span class="op">=</span>dfx.ConstantStepSize(),</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>                          max_steps<span class="op">=</span><span class="bu">int</span>(T_OBS <span class="op">/</span> DT_YEARS) <span class="op">+</span> <span class="dv">5</span>, saveat<span class="op">=</span>dfx.SaveAt(ts<span class="op">=</span>t_save))</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> sol.ys                                                        <span class="co"># (K, NX)</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>H_traj <span class="op">=</span> jax.vmap(evolve_traj)(A_vals)                                   <span class="co"># (8, K, NX)</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>U_traj <span class="op">=</span> jax.vmap(<span class="kw">lambda</span> Ht, A: jax.vmap(<span class="kw">lambda</span> H: surface_velocity(H, A))(Ht))(H_traj, A_vals)</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>ref    <span class="op">=</span> <span class="bu">int</span>(np.argmax(np.array(U_obs).mean(axis<span class="op">=</span><span class="dv">0</span>)))                    <span class="co"># a representative fast point</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>uref   <span class="op">=</span> np.array(U_traj[:, :, ref])                                     <span class="co"># (8, K) speed there over time</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>colors <span class="op">=</span> plt.cm.coolwarm(np.linspace(<span class="dv">0</span>, <span class="dv">1</span>, <span class="bu">len</span>(T_glaciers)))</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">15</span>, <span class="fl">4.2</span>))</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a><span class="co"># (a) The SHARED setup: one geometry and one climate, identical for every glacier.</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>].fill_between(x<span class="op">/</span><span class="dv">1000</span>, bed, bed <span class="op">+</span> np.array(H_init), color<span class="op">=</span><span class="st">"#bcd4e6"</span>, label<span class="op">=</span><span class="st">"ice (start)"</span>)</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>].plot(x<span class="op">/</span><span class="dv">1000</span>, bed, color<span class="op">=</span><span class="st">"#6b4f2a"</span>, lw<span class="op">=</span><span class="dv">2</span>, label<span class="op">=</span><span class="st">"bedrock"</span>)</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>].plot(x<span class="op">/</span><span class="dv">1000</span>, bed <span class="op">+</span> np.array(H_init), color<span class="op">=</span><span class="st">"#1f6f8b"</span>, lw<span class="op">=</span><span class="dv">2</span>, label<span class="op">=</span><span class="st">"start surface"</span>)</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>].<span class="bu">set</span>(xlabel<span class="op">=</span><span class="st">"distance [km]"</span>, ylabel<span class="op">=</span><span class="st">"elevation [m]"</span>,</span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>          title<span class="op">=</span><span class="st">"Shared setup: same geometry &amp; climate"</span>)</span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>].legend(frameon<span class="op">=</span><span class="va">False</span>, fontsize<span class="op">=</span><span class="dv">8</span>, loc<span class="op">=</span><span class="st">"upper right"</span>)</span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>axb <span class="op">=</span> ax[<span class="dv">0</span>].twinx()                                                      <span class="co"># the one mass-balance law</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>axb.plot(x<span class="op">/</span><span class="dv">1000</span>, np.array(mass_balance(bed <span class="op">+</span> np.array(H_init))), color<span class="op">=</span><span class="st">"#3a7d44"</span>, lw<span class="op">=</span><span class="fl">1.5</span>, ls<span class="op">=</span><span class="st">":"</span>)</span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>axb.axhline(<span class="fl">0.0</span>, color<span class="op">=</span><span class="st">"0.7"</span>, lw<span class="op">=</span><span class="fl">0.8</span>)</span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>axb.set_ylabel(<span class="st">"mass balance [m/a]  (same for all)"</span>, color<span class="op">=</span><span class="st">"#3a7d44"</span>, fontsize<span class="op">=</span><span class="dv">9</span>)</span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>axb.tick_params(axis<span class="op">=</span><span class="st">"y"</span>, labelcolor<span class="op">=</span><span class="st">"#3a7d44"</span>)</span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a><span class="co"># (b) EVOLUTION over the 30-year transient -- the only difference between curves is A(T).</span></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(T_glaciers)):</span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>    ax[<span class="dv">1</span>].plot(np.array(t_save), uref[i], color<span class="op">=</span>colors[i], lw<span class="op">=</span><span class="fl">1.8</span>, marker<span class="op">=</span><span class="st">"o"</span>, ms<span class="op">=</span><span class="dv">3</span>)</span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">1</span>].<span class="bu">set</span>(xlabel<span class="op">=</span><span class="st">"time [years]"</span>, ylabel<span class="op">=</span><span class="ss">f"surface velocity at x </span><span class="ch">\u2248</span><span class="ss"> </span><span class="sc">{</span><span class="bu">float</span>(x[ref])<span class="op">/</span><span class="dv">1000</span><span class="sc">:.0f}</span><span class="ss"> km [m/a]"</span>,</span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>          title<span class="op">=</span><span class="st">"Evolution: 8 glaciers, only $A(T)$ differs"</span>)</span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a><span class="co"># (c) The OBSERVATIONS: final velocity profiles we train on.</span></span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, T <span class="kw">in</span> <span class="bu">enumerate</span>(np.array(T_glaciers)):</span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>    ax[<span class="dv">2</span>].plot(x<span class="op">/</span><span class="dv">1000</span>, np.array(U_obs[i]), color<span class="op">=</span>colors[i], lw<span class="op">=</span><span class="fl">1.8</span>, label<span class="op">=</span><span class="ss">f"</span><span class="sc">{</span>T<span class="sc">:.0f}</span><span class="ss"> °C"</span>)</span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">2</span>].<span class="bu">set</span>(xlabel<span class="op">=</span><span class="st">"distance [km]"</span>, ylabel<span class="op">=</span><span class="st">"surface velocity [m/a]"</span>,</span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a>          title<span class="op">=</span><span class="st">"Recorded velocities = training data"</span>)</span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">2</span>].legend(frameon<span class="op">=</span><span class="va">False</span>, fontsize<span class="op">=</span><span class="dv">7</span>, title<span class="op">=</span><span class="st">"mean air T"</span>, ncol<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()<span class="op">;</span> plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="UDE_glaciology_lecture_files/figure-html/cell-7-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Warmer glaciers flow faster for the same geometry — softer ice. That spread is the signal we invert.</p>
+</section>
+<section id="the-learnable-closure-a-neural-network-a_thetat" class="level3">
+<h3 class="anchored" data-anchor-id="the-learnable-closure-a-neural-network-a_thetat">5.3 The learnable closure: a neural network <span class="math inline">\(A_\theta(T)\)</span></h3>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Three good-practice choices for the network
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li><strong>Normalize the input</strong> — feed <span class="math inline">\((T+14)/11\)</span> so it is <span class="math inline">\(O(1)\)</span>.</li>
+<li><strong>Learn a deviation from a physics baseline</strong> — output <span class="math inline">\(A_\theta(T)=A_\mathrm{ref}\,e^{\,\mathrm{net}(T)}\)</span>, i.e.&nbsp;learn <span class="math inline">\(\log A\)</span> relative to a reference. Scale-free (A spans orders of magnitude), positive by construction, and non-saturating.</li>
+<li><strong>Initialization then takes care of itself</strong> — with the normalized input and the log-deviation form, the untrained network starts flat and near <span class="math inline">\(A_\mathrm{ref}\)</span>, in range.</li>
+</ul>
+</div>
+</div>
+<div id="f71eecd6" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-07-01T22:00:02.397924Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-07-01T22:00:02.397802Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-07-01T22:00:03.293405Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-07-01T22:00:03.292333Z&quot;}}" data-execution_count="7">
+<details open="" class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> CreepNet(eqx.Module):</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"Neural network for the creep parameter:  T -&gt; A_theta(T)."</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    mlp: eqx.nn.MLP</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, key):</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>        <span class="co"># small on purpose: the PDE supplies strong structure, so few parameters are needed</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.mlp <span class="op">=</span> eqx.nn.MLP(in_size<span class="op">=</span><span class="dv">1</span>, out_size<span class="op">=</span><span class="dv">1</span>, width_size<span class="op">=</span><span class="dv">10</span>, depth<span class="op">=</span><span class="dv">2</span>,</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>                              activation<span class="op">=</span>jax.nn.softplus, key<span class="op">=</span>key)</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__call__</span>(<span class="va">self</span>, T):</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>        z <span class="op">=</span> jnp.atleast_1d((T <span class="op">+</span> <span class="fl">14.0</span>) <span class="op">/</span> <span class="fl">11.0</span>)            <span class="co"># normalize input to ~O(1)</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> A_REF <span class="op">*</span> jnp.exp(jnp.clip(<span class="va">self</span>.mlp(z)[<span class="dv">0</span>], <span class="op">-</span><span class="fl">5.0</span>, <span class="fl">5.0</span>))   <span class="co"># learn log-deviation from A_REF</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>model0 <span class="op">=</span> CreepNet(jax.random.PRNGKey(<span class="dv">0</span>))</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>n_par <span class="op">=</span> <span class="bu">sum</span>(p.size <span class="cf">for</span> p <span class="kw">in</span> jax.tree_util.tree_leaves(eqx.<span class="bu">filter</span>(model0, eqx.is_array)))</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"untrained A_theta(-10 C) = </span><span class="sc">{</span><span class="bu">float</span>(model0(<span class="op">-</span><span class="fl">10.0</span>))<span class="sc">:.2e}</span><span class="ss">   |   </span><span class="sc">{</span>n_par<span class="sc">}</span><span class="ss"> trainable parameters"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>untrained A_theta(-10 C) = 6.57e-17   |   141 trainable parameters</code></pre>
+</div>
+</div>
+</section>
+<section id="the-loss-gradients-through-the-solver" class="level3">
+<h3 class="anchored" data-anchor-id="the-loss-gradients-through-the-solver">5.4 The loss — gradients <em>through</em> the solver</h3>
+<p>This is the PDE-constrained objective from §4 made concrete: the loss runs the <strong>same</strong> SIA solver with <span class="math inline">\(A_\theta(T)\)</span> and compares predicted to observed velocities. <code>eqx.filter_value_and_grad</code> differentiates it <strong>through <code>diffeqsolve</code></strong> — through every implicit time step — i.e.&nbsp;it solves the adjoint automatically.</p>
+<div id="368e16d8" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-07-01T22:00:03.294923Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-07-01T22:00:03.294784Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-07-01T22:00:07.312693Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-07-01T22:00:07.311458Z&quot;}}" data-execution_count="8">
+<details open="" class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> loss_fn(model, U_obs):</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    A_pred <span class="op">=</span> jax.vmap(model)(T_glaciers)                              <span class="co"># A_theta(T) per glacier</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    H_pred <span class="op">=</span> jax.vmap(<span class="kw">lambda</span> A: solve_sia(A, H_init, T_OBS))(A_pred)  <span class="co"># SOLVE the PDE</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    U_pred <span class="op">=</span> jax.vmap(surface_velocity)(H_pred, A_pred)</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    scale  <span class="op">=</span> jnp.maximum(U_obs.<span class="bu">max</span>(axis<span class="op">=</span><span class="dv">1</span>, keepdims<span class="op">=</span><span class="va">True</span>), <span class="fl">1.0</span>)       <span class="co"># weigh glaciers equally</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> jnp.mean(((U_pred <span class="op">-</span> U_obs) <span class="op">/</span> scale) <span class="op">**</span> <span class="dv">2</span>)</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>loss0, grads <span class="op">=</span> eqx.filter_value_and_grad(loss_fn)(model0, U_obs)</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"initial loss = </span><span class="sc">{</span><span class="bu">float</span>(loss0)<span class="sc">:.3e}</span><span class="ss">   |   gradient norm = </span><span class="sc">{</span><span class="bu">float</span>(optax.global_norm(grads))<span class="sc">:.3e}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>initial loss = 5.203e-01   |   gradient norm = 3.998e+00</code></pre>
+</div>
+</div>
+</section>
+<section id="train-adam-cosine-decayed-learning-rate-gradient-clipping-30-s" class="level3">
+<h3 class="anchored" data-anchor-id="train-adam-cosine-decayed-learning-rate-gradient-clipping-30-s">5.5 Train (Adam + cosine-decayed learning rate + gradient clipping; ~30 s)</h3>
+<div id="842c3e15" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-07-01T22:00:07.314080Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-07-01T22:00:07.313952Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-07-01T22:00:52.865399Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-07-01T22:00:52.864355Z&quot;}}" data-execution_count="9">
+<details open="" class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>N_EPOCHS <span class="op">=</span> <span class="dv">400</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>schedule <span class="op">=</span> optax.cosine_decay_schedule(init_value<span class="op">=</span><span class="fl">3e-3</span>, decay_steps<span class="op">=</span>N_EPOCHS, alpha<span class="op">=</span><span class="fl">0.05</span>)</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>optimizer <span class="op">=</span> optax.chain(optax.clip_by_global_norm(<span class="fl">1.0</span>), optax.adam(schedule))</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> CreepNet(jax.random.PRNGKey(<span class="dv">0</span>))</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>opt_state <span class="op">=</span> optimizer.init(eqx.<span class="bu">filter</span>(model, eqx.is_array))</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="at">@eqx.filter_jit</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> train_step(model, opt_state, U_obs):</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    loss, grads <span class="op">=</span> eqx.filter_value_and_grad(loss_fn)(model, U_obs)</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    updates, opt_state <span class="op">=</span> optimizer.update(grads, opt_state)</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> eqx.apply_updates(model, updates), opt_state, loss</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>history <span class="op">=</span> []</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>t0 <span class="op">=</span> time.time()</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> epoch <span class="kw">in</span> <span class="bu">range</span>(N_EPOCHS):</span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>    model, opt_state, loss <span class="op">=</span> train_step(model, opt_state, U_obs)</span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>    history.append(<span class="bu">float</span>(loss))</span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> epoch <span class="op">%</span> <span class="dv">50</span> <span class="op">==</span> <span class="dv">0</span> <span class="kw">or</span> epoch <span class="op">==</span> N_EPOCHS <span class="op">-</span> <span class="dv">1</span>:</span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"epoch </span><span class="sc">{</span>epoch<span class="sc">:4d}</span><span class="ss">   loss = </span><span class="sc">{</span><span class="bu">float</span>(loss)<span class="sc">:.3e}</span><span class="ss">"</span>)</span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">trained in </span><span class="sc">{</span>time<span class="sc">.</span>time() <span class="op">-</span> t0<span class="sc">:.1f}</span><span class="ss"> s"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>epoch    0   loss = 5.203e-01
+epoch   50   loss = 8.854e-02
+epoch  100   loss = 7.703e-02
+epoch  150   loss = 5.605e-02
+epoch  200   loss = 1.639e-02
+epoch  250   loss = 6.780e-04
+epoch  300   loss = 4.998e-04
+epoch  350   loss = 4.384e-04
+epoch  399   loss = 4.119e-04
+
+trained in 45.5 s</code></pre>
+</div>
+</div>
+</section>
+<section id="did-we-recover-the-hidden-physics" class="level3">
+<h3 class="anchored" data-anchor-id="did-we-recover-the-hidden-physics">5.6 Did we recover the hidden physics?</h3>
+<p>Plot learned <span class="math inline">\(A_\theta(T)\)</span> against the truth we hid — the analogue of Figure 3 in Bolibar et al.</p>
+<div id="82da341a" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-07-01T22:00:52.866897Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-07-01T22:00:52.866736Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-07-01T22:00:53.735543Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-07-01T22:00:53.734497Z&quot;}}" data-execution_count="10">
+<details open="" class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>A_learned <span class="op">=</span> jax.vmap(model)(T_glaciers)</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>rel_err <span class="op">=</span> np.<span class="bu">abs</span>(np.array((A_learned <span class="op">-</span> A_vals) <span class="op">/</span> A_vals))</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>T_dense <span class="op">=</span> jnp.linspace(<span class="op">-</span><span class="fl">26.0</span>, <span class="op">-</span><span class="fl">2.0</span>, <span class="dv">100</span>)</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Model output after training: predicted velocities (what we compare to observations)</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>H_pred <span class="op">=</span> jax.vmap(<span class="kw">lambda</span> A: solve_sia(A, H_init, T_OBS))(A_learned)</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>U_pred <span class="op">=</span> jax.vmap(surface_velocity)(H_pred, A_learned)</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">15</span>, <span class="fl">4.2</span>))</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a><span class="co"># (a) training loss</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>].semilogy(history, color<span class="op">=</span><span class="st">"#1f6f8b"</span>)</span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">0</span>].<span class="bu">set</span>(xlabel<span class="op">=</span><span class="st">"epoch"</span>, ylabel<span class="op">=</span><span class="st">"loss"</span>, title<span class="op">=</span><span class="st">"Training loss"</span>)</span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a><span class="co"># (b) recovered constitutive law vs the hidden truth</span></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">1</span>].plot(np.array(T_dense), np.array(jax.vmap(model)(T_dense)), color<span class="op">=</span><span class="st">"#d1495b"</span>, lw<span class="op">=</span><span class="fl">2.5</span>,</span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>           label<span class="op">=</span><span class="vs">r"learned </span><span class="dv">$</span><span class="vs">A_</span><span class="ch">\t</span><span class="vs">heta</span><span class="kw">(</span><span class="vs">T</span><span class="kw">)</span><span class="dv">$</span><span class="vs">"</span>)</span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">1</span>].plot(np.array(T_dense), np.array(A_true(T_dense)), <span class="st">"--"</span>, color<span class="op">=</span><span class="st">"0.3"</span>, lw<span class="op">=</span><span class="dv">2</span>, label<span class="op">=</span><span class="st">"hidden truth"</span>)</span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">1</span>].scatter(np.array(T_glaciers), np.array(A_vals), color<span class="op">=</span><span class="st">"k"</span>, zorder<span class="op">=</span><span class="dv">5</span>, s<span class="op">=</span><span class="dv">35</span>, label<span class="op">=</span><span class="st">"training glaciers"</span>)</span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">1</span>].<span class="bu">set</span>(xlabel<span class="op">=</span><span class="st">"mean air temperature [°C]"</span>, ylabel<span class="op">=</span><span class="vs">r"</span><span class="dv">$</span><span class="vs">A</span><span class="dv">$</span><span class="vs"> </span><span class="pp">[Pa$^{-3}$ a$^{-1}$]</span><span class="vs">"</span>,</span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>          title<span class="op">=</span><span class="st">"Recovered constitutive law"</span>)</span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">1</span>].legend(frameon<span class="op">=</span><span class="va">False</span>, fontsize<span class="op">=</span><span class="dv">9</span>)</span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a><span class="co"># (c) model output vs observations (the actual fit) for coldest &amp; warmest glacier</span></span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> idx, name, c <span class="kw">in</span> [(<span class="dv">0</span>, <span class="st">"coldest"</span>, <span class="st">"#2166ac"</span>), (<span class="bu">len</span>(T_glaciers) <span class="op">-</span> <span class="dv">1</span>, <span class="st">"warmest"</span>, <span class="st">"#b2182b"</span>)]:</span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>    ax[<span class="dv">2</span>].plot(x<span class="op">/</span><span class="dv">1000</span>, np.array(U_obs[idx]),  <span class="st">"o"</span>, ms<span class="op">=</span><span class="dv">3</span>, color<span class="op">=</span>c, label<span class="op">=</span><span class="ss">f"</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">: observed"</span>)</span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>    ax[<span class="dv">2</span>].plot(x<span class="op">/</span><span class="dv">1000</span>, np.array(U_pred[idx]), <span class="st">"-"</span>, color<span class="op">=</span>c, lw<span class="op">=</span><span class="dv">2</span>, label<span class="op">=</span><span class="ss">f"</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">: model"</span>)</span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">2</span>].<span class="bu">set</span>(xlabel<span class="op">=</span><span class="st">"distance [km]"</span>, ylabel<span class="op">=</span><span class="st">"surface velocity [m/a]"</span>,</span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>          title<span class="op">=</span><span class="st">"Model output vs observations"</span>)</span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a>ax[<span class="dv">2</span>].legend(frameon<span class="op">=</span><span class="va">False</span>, fontsize<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()<span class="op">;</span> plt.show()</span>
+<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"recovery error in A(T):  mean </span><span class="sc">{</span>rel_err<span class="sc">.</span>mean()<span class="sc">:.1%}</span><span class="ss">   max </span><span class="sc">{</span>rel_err<span class="sc">.</span><span class="bu">max</span>()<span class="sc">:.1%}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="UDE_glaciology_lecture_files/figure-html/cell-11-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>recovery error in A(T):  mean 4.1%   max 6.5%</code></pre>
+</div>
+</div>
+<p>The network started knowing nothing about ice rheology and recovered the hidden temperature dependence to a few percent — purely by reproducing observed velocities through the physics. Over a black-box fit we gained:</p>
+<ul>
+<li><strong>Interpretable</strong> — <span class="math inline">\(A_\theta(T)\)</span> is a curve we can inspect and compare to lab data.</li>
+<li><strong>Physically consistent</strong> — predictions always obey mass conservation and the SIA.</li>
+<li><strong>Data-efficient</strong> — a handful of glaciers sufficed; the PDE does most of the explaining.</li>
+</ul>
+</section>
+<section id="bonus-robustness-to-noise" class="level3">
+<h3 class="anchored" data-anchor-id="bonus-robustness-to-noise">5.7 Bonus: robustness to noise</h3>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Implicit regularization
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The embedded PDE resists overfitting noise <em>without</em> any explicit penalty — Bolibar et al.&nbsp;report the same. Add 15% noise and retrain:</p>
+</div>
+</div>
+<div id="a3f10677" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-07-01T22:00:53.737021Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-07-01T22:00:53.736897Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-07-01T22:01:38.493063Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-07-01T22:01:38.491813Z&quot;}}" data-execution_count="11">
+<details open="" class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>U_noisy <span class="op">=</span> U_obs <span class="op">+</span> <span class="fl">0.15</span> <span class="op">*</span> U_obs <span class="op">*</span> jax.random.normal(jax.random.PRNGKey(<span class="dv">42</span>), U_obs.shape)</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>model_n <span class="op">=</span> CreepNet(jax.random.PRNGKey(<span class="dv">0</span>))</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>opt_state_n <span class="op">=</span> optimizer.init(eqx.<span class="bu">filter</span>(model_n, eqx.is_array))</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(N_EPOCHS):</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    model_n, opt_state_n, _ <span class="op">=</span> train_step(model_n, opt_state_n, U_noisy)</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>rel_n <span class="op">=</span> np.<span class="bu">abs</span>(np.array((jax.vmap(model_n)(T_glaciers) <span class="op">-</span> A_vals) <span class="op">/</span> A_vals))</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>plt.figure(figsize<span class="op">=</span>(<span class="dv">6</span>, <span class="dv">4</span>))</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>plt.plot(np.array(T_dense), np.array(A_true(T_dense)), <span class="st">"--"</span>, color<span class="op">=</span><span class="st">"0.3"</span>, lw<span class="op">=</span><span class="dv">2</span>, label<span class="op">=</span><span class="st">"hidden truth"</span>)</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>plt.plot(np.array(T_dense), np.array(jax.vmap(model)(T_dense)), color<span class="op">=</span><span class="st">"#1f6f8b"</span>, lw<span class="op">=</span><span class="dv">2</span>, label<span class="op">=</span><span class="st">"learned (clean)"</span>)</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>plt.plot(np.array(T_dense), np.array(jax.vmap(model_n)(T_dense)), color<span class="op">=</span><span class="st">"#d1495b"</span>, lw<span class="op">=</span><span class="dv">2</span>, label<span class="op">=</span><span class="st">"learned (15% noise)"</span>)</span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"mean air temperature [°C]"</span>)<span class="op">;</span> plt.ylabel(<span class="vs">r"</span><span class="dv">$</span><span class="vs">A</span><span class="dv">$</span><span class="vs"> </span><span class="pp">[Pa$^{-3}$ a$^{-1}$]</span><span class="vs">"</span>)</span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">"Recovered $A(T)$ stays smooth under noise"</span>)<span class="op">;</span> plt.legend(frameon<span class="op">=</span><span class="va">False</span>, fontsize<span class="op">=</span><span class="dv">9</span>)</span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()<span class="op">;</span> plt.show()</span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"recovery error WITH 15% noise:  mean </span><span class="sc">{</span>rel_n<span class="sc">.</span>mean()<span class="sc">:.1%}</span><span class="ss">   max </span><span class="sc">{</span>rel_n<span class="sc">.</span><span class="bu">max</span>()<span class="sc">:.1%}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="UDE_glaciology_lecture_files/figure-html/cell-12-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>recovery error WITH 15% noise:  mean 5.4%   max 10.6%</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="from-the-toy-to-the-real-thing-bolibar-et-al.-2023" class="level2">
+<h2 class="anchored" data-anchor-id="from-the-toy-to-the-real-thing-bolibar-et-al.-2023">6 · From the toy to the real thing: Bolibar et al.&nbsp;(2023)</h2>
+<p><strong>“Universal differential equations for glacier ice flow modelling”</strong>, Geosci. Model Dev. <strong>16</strong>, 6671–6687, <a href="https://doi.org/10.5194/gmd-16-6671-2023">doi:10.5194/gmd-16-6671-2023</a>. Same idea, scaled to real glaciers:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th></th>
+<th>This notebook</th>
+<th>Bolibar et al.&nbsp;2023</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Physics</td>
+<td>1-D SIA flowline</td>
+<td>2-D SIA on real grids</td>
+</tr>
+<tr class="even">
+<td>Geometry / climate</td>
+<td>synthetic</td>
+<td>real (RGI, OGGM, W5E5, Farinotti thickness)</td>
+</tr>
+<tr class="odd">
+<td>Unknown closure</td>
+<td><span class="math inline">\(A(T)\)</span></td>
+<td><span class="math inline">\(A_\theta(T_s)\)</span></td>
+</tr>
+<tr class="even">
+<td>Differentiation</td>
+<td>checkpointed AD (<code>diffrax</code>)</td>
+<td>continuous adjoint (<code>SciMLSensitivity</code>)</td>
+</tr>
+<tr class="odd">
+<td>Optimizer</td>
+<td>Adam</td>
+<td>BFGS</td>
+</tr>
+<tr class="even">
+<td>Scale</td>
+<td>8 glaciers, ~30 s, CPU</td>
+<td>17 glaciers, ~10⁵ ODEs, ~3 h on 16 CPUs</td>
+</tr>
+<tr class="odd">
+<td>Software</td>
+<td>JAX stack</td>
+<td><a href="https://github.com/ODINN-SciML/ODINN.jl">ODINN.jl</a> (Julia)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Key findings:</strong> - Recovered the prescribed (noisy) <span class="math inline">\(A(T_s)\)</span> across glaciers <strong>without overfitting</strong> and <strong>without explicit regularization</strong> — implicit regularization by the PDE (we reproduced this in §5.7). - <strong>Robust to a deliberately wrong mass-balance forcing</strong>, because velocity is less sensitive to mass-balance error than thickness change is.</p>
+<p><strong>Where it’s going:</strong> learnable basal <strong>sliding</strong>, learnable <strong>mass-balance</strong> laws, seasonal velocity data to separate creep from sliding, and full-Stokes emulators.</p>
+</section>
+<section id="pitfalls-frontier" class="level2">
+<h2 class="anchored" data-anchor-id="pitfalls-frontier">7 · Pitfalls &amp; frontier</h2>
+<p>A few things to keep in mind, and where the field is heading:</p>
+<ul>
+<li><strong>Local minima</strong> — the loss is non-convex; restarts and learning-rate schedules matter.</li>
+<li><strong>Extrapolation</strong> — <span class="math inline">\(A_\theta(T)\)</span> is only trustworthy over the temperature range seen in training; bound the output to physical values.</li>
+<li><strong>Uncertainty</strong> — quantifying uncertainty in the <em>learned function</em> (Bayesian/ensemble) is largely open.</li>
+<li><strong>Informative data</strong> — the observations have to actually constrain the closure you are learning; choosing what and when to observe is part of the design.</li>
+</ul>
+</section>
+<section id="references" class="level2">
+<h2 class="anchored" data-anchor-id="references">8 · References</h2>
+<p><strong>Core paper</strong></p>
+<ul>
+<li>Bolibar, J., Sapienza, F., Maussion, F., Lguensat, R., Wouters, B., &amp; Pérez, F. (2023). <em>Universal differential equations for glacier ice flow modelling.</em> GMD 16, 6671–6687. https://doi.org/10.5194/gmd-16-6671-2023 · ODINN.jl: https://github.com/ODINN-SciML/ODINN.jl</li>
+</ul>
+<p><strong>UDEs &amp; scientific ML</strong></p>
+<ul>
+<li>Rackauckas et al.&nbsp;(2020), <em>Universal Differential Equations for SciML</em>, arXiv:2001.04385 · Chen et al.&nbsp;(2018), <em>Neural ODEs</em>, NeurIPS ·</li>
+<li>Brunton et al.&nbsp;(2016), <em>SINDy</em>, PNAS 113(15) · Raissi et al.&nbsp;(2019), <em>Physics-informed neural networks</em>, JCP 378 · Sapienza et al.&nbsp;(2024), <em>Differentiable programming for differential equations: a review</em>, arXiv:2406.09699.</li>
+</ul>
+<hr>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+    const viewSource = window.document.getElementById('quarto-view-source') ||
+                       window.document.getElementById('quarto-code-tools-source');
+    if (viewSource) {
+      const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
+      viewSource.addEventListener("click", function(e) {
+        if (sourceUrl) {
+          // rstudio viewer pane
+          if (/\bcapabilities=\b/.test(window.location)) {
+            window.open(sourceUrl);
+          } else {
+            window.location.href = sourceUrl;
+          }
+        } else {
+          const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
+          modal.show();
+        }
+        return false;
+      });
+    }
+    function toggleCodeHandler(show) {
+      return function(e) {
+        const detailsSrc = window.document.querySelectorAll(".cell > details > .sourceCode");
+        for (let i=0; i<detailsSrc.length; i++) {
+          const details = detailsSrc[i].parentElement;
+          if (show) {
+            details.open = true;
+          } else {
+            details.removeAttribute("open");
+          }
+        }
+        const cellCodeDivs = window.document.querySelectorAll(".cell > .sourceCode");
+        const fromCls = show ? "hidden" : "unhidden";
+        const toCls = show ? "unhidden" : "hidden";
+        for (let i=0; i<cellCodeDivs.length; i++) {
+          const codeDiv = cellCodeDivs[i];
+          if (codeDiv.classList.contains(fromCls)) {
+            codeDiv.classList.remove(fromCls);
+            codeDiv.classList.add(toCls);
+          } 
+        }
+        return false;
+      }
+    }
+    const hideAllCode = window.document.getElementById("quarto-hide-all-code");
+    if (hideAllCode) {
+      hideAllCode.addEventListener("click", toggleCodeHandler(false));
+    }
+    const showAllCode = window.document.getElementById("quarto-show-all-code");
+    if (showAllCode) {
+      showAllCode.addEventListener("click", toggleCodeHandler(true));
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+<script src="site_libs/quarto-html/zenscroll-min.js"></script>
+</body></html>

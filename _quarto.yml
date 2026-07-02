@@ -1,0 +1,27 @@
+project:
+  type: website
+  output-dir: _site
+  render:
+    - index.qmd
+    - UDE_glaciology_lecture.ipynb
+    - AD_and_adjoints_concepts.ipynb
+    - gaussian_processes.ipynb
+
+website:
+  title: "Glaciology + Machine Learning"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Home
+      - href: UDE_glaciology_lecture.ipynb
+        text: UDEs
+      - href: AD_and_adjoints_concepts.ipynb
+        text: Adjoints & AD
+      - href: gaussian_processes.ipynb
+        text: Gaussian Processes
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-location: left

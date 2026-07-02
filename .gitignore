@@ -11,3 +11,7 @@ wheels/
 
 /.quarto/
 **/*.quarto_ipynb
+
+# Quarto render artifacts
+/_site/
+/_freeze/
