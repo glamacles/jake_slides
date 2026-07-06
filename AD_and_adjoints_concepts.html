@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.9.37">
+<meta name="generator" content="quarto-1.9.38">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -74,10 +74,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-de63f62b328812d8e578a4d74e282472.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-3dfdabff9cb45623dc2121e8c2e89e68.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-d90d3ffaf5042f4372420b59a33bd6a1.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -231,16 +231,16 @@ window.Quarto = {
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Computing the gradient of a scalar loss, whether through a discretized glacier solver or through a neural network, is one computation: the <em>adjoint method</em>. This notebook derives it, and shows it is exactly what backpropagation does.</p>
+<p>For a scalar loss, backpropagation is reverse-mode AD applied to the computation graph. Written as constraints, that reverse pass is the <strong>discrete adjoint method</strong>: a transposed linearized system solved backward.</p>
 </div>
 </div>
 <p>Three names get used for closely related things, and the mix of names can be confusing.</p>
 <ul>
-<li><em>Reverse-mode AD</em>: the general technique. Sweep backward through a program to get how a chosen output responds to every input. This is the umbrella term.</li>
-<li><em>Backpropagation</em>: the case we care about here. Reverse-mode AD applied to a single scalar loss, returning its gradient over all parameters. (The machine-learning name.)</li>
-<li><em>The adjoint method</em>: the same computation seen from optimization and PDE-constrained inversion (older; MacAyeal 1993 in glaciology).</li>
+<li><em>Reverse-mode AD</em>: the general technique. Sweep backward through a program to get how a chosen output responds to many inputs. This is the umbrella term.</li>
+<li><em>Backpropagation</em>: the machine-learning name for reverse-mode AD applied to a scalar loss, returning gradients with respect to model parameters.</li>
+<li><em>The adjoint method</em>: the same reverse sensitivity idea, usually written in the language of constrained optimization, inverse problems, and PDE-constrained models.</li>
 </ul>
-<p>For a scalar objective, which is our primary setting, the three coincide: backprop is reverse-mode AD seeded at the loss, which is the adjoint method. Reverse-mode AD is strictly more general (it also handles vector outputs).</p>
+<p>For the scalar objectives in this notebook, these viewpoints coincide: backprop is reverse-mode AD seeded at the loss, and the resulting backward sweep is the discrete adjoint of the computation being differentiated. Reverse-mode AD is more general than this setting, but this is the case that makes training and inversion practical.</p>
 <div id="151729c9" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-07-02T03:18:34.146762Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-07-02T03:18:34.146624Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-07-02T03:18:35.151055Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-07-02T03:18:35.150151Z&quot;}}" data-execution_count="1">
 <details open="" class="code-fold">
 <summary>Code</summary>
@@ -255,23 +255,23 @@ window.Quarto = {
 <section id="the-problem-a-gradient-through-a-constraint" class="level2">
 <h2 class="anchored" data-anchor-id="the-problem-a-gradient-through-a-constraint">1 · The problem: a gradient through a constraint</h2>
 <ul>
-<li>A scalar loss <span class="math inline">\(L(u,\theta)\in\mathbb{R}\)</span> depends on parameters <span class="math inline">\(\theta\in\mathbb{R}^p\)</span> through a state <span class="math inline">\(u\in\mathbb{R}^n\)</span>.</li>
-<li>However, <span class="math inline">\(u\)</span> is not given explicitly. It is defined implicitly by a constraint:</li>
+<li>A scalar loss <span class="math inline">\(L(u,   heta)\in\mathbb{R}\)</span> depends on parameters <span class="math inline">\(\theta\in\mathbb{R}^p\)</span> through a state <span class="math inline">\(u\in\mathbb{R}^n\)</span>.</li>
+<li>The state <span class="math inline">\(u\)</span> is not usually given by a closed-form formula. It is defined by a constraint:</li>
 </ul>
 <p><span class="math display">\[g(u,\theta) = 0,\qquad g:\mathbb{R}^n\times\mathbb{R}^p\to\mathbb{R}^n \quad\Longrightarrow\quad u = u(\theta).\]</span></p>
-<p>Same shape across very different problems:</p>
+<p>This shape appears in very different problems:</p>
 <ul>
 <li><em>Glacier inversion</em>:
 <ul>
-<li><span class="math inline">\(g=0\)</span> could be the discretized ice-flow equation or set of coupled equations</li>
-<li><span class="math inline">\(\theta\)</span> might represent something like the basal friction coefficient <span class="math inline">\(\beta\)</span></li>
-<li><span class="math inline">\(L\)</span> would represent an objective function like mismatch between modeled and observed surface velocities</li>
+<li><span class="math inline">\(g=0\)</span> could be a discretized ice-flow equation or a coupled set of equations.</li>
+<li><span class="math inline">\(\theta\)</span> might represent parameters such as the basal friction coefficient <span class="math inline">\(\beta\)</span>.</li>
+<li><span class="math inline">\(L\)</span> might measure mismatch between modeled and observed surface velocities.</li>
 </ul></li>
 <li><em>Neural network</em>:
 <ul>
-<li>For neural networks, <span class="math inline">\(g=0\)</span> can represent a series of layers (rewriting function composition as constraints)</li>
-<li><span class="math inline">\(\theta\)</span> is a set of NN parameters</li>
-<li><span class="math inline">\(L\)</span> is a loss function</li>
+<li><span class="math inline">\(g=0\)</span> can represent the sequence of layers, after rewriting function composition as constraints.</li>
+<li><span class="math inline">\(\theta\)</span> is the collection of network parameters.</li>
+<li><span class="math inline">\(L\)</span> is the training loss.</li>
 </ul></li>
 </ul>
 <div class="callout callout-style-default callout-important callout-titled">
@@ -284,7 +284,7 @@ Important
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>We want <span class="math inline">\(\dfrac{dL}{d\theta}\in\mathbb{R}^p\)</span>, computed <em>without</em> a cost that scales with the number of parameters <span class="math inline">\(p\)</span>.</p>
+<p>We want <span class="math inline">\(\dfrac{dL}{d\theta}\in\mathbb{R}^p\)</span> without doing one expensive state-sensitivity solve per parameter.</p>
 </div>
 </div>
 </section>
@@ -301,7 +301,7 @@ Important
 \frac{du}{d\theta} = -\Big(\frac{\partial g}{\partial u}\Big)^{-1}\frac{\partial g}{\partial\theta}.\]</span></p>
 <p><strong>Step 3: substitute back.</strong></p>
 <p><span class="math display">\[\frac{dL}{d\theta} = \frac{\partial L}{\partial\theta} - \frac{\partial L}{\partial u}\Big(\frac{\partial g}{\partial u}\Big)^{-1}\frac{\partial g}{\partial\theta}.\]</span></p>
-<p>The gradient is explicit; all that’s left is <em>how</em> to evaluate the middle product. The order of operations decides the cost.</p>
+<p>The gradient is explicit; all that remains is <em>how</em> to evaluate the middle product. The order of operations decides the cost.</p>
 <section id="option-1-direct-tangent-linear-forward" class="level3">
 <h3 class="anchored" data-anchor-id="option-1-direct-tangent-linear-forward">Option 1: direct / tangent-linear (forward)</h3>
 <p>Build the sensitivity <span class="math inline">\(du/d\theta\)</span> (size <span class="math inline">\(n\times p\)</span>) one column at a time. Column <span class="math inline">\(j\)</span> (how the state responds to parameter <span class="math inline">\(\theta_j\)</span>) is the linear solve</p>
@@ -312,7 +312,7 @@ Important
 <li>This is the tangent-linear model, or <em>forward mode</em>:</li>
 </ul>
 <blockquote class="blockquote">
-<p>Pushes a perturbation of <span class="math inline">\(\theta\)</span> <em>forward</em> through the system. Cheap only when <span class="math inline">\(p\)</span> is small.</p>
+<p>Pushes a perturbation of <span class="math inline">\(\theta\)</span> <em>forward</em> through the system. Efficient when the number of input directions is small.</p>
 </blockquote>
 </section>
 <section id="option-2-adjoint-cotangent-reverse" class="level3">
@@ -325,9 +325,10 @@ Important
 \quad\Longleftrightarrow\quad
 \Big(\frac{\partial g}{\partial u}\Big)^{\!\top}\lambda = \Big(\frac{\partial L}{\partial u}\Big)^{\!\top}.\]</span></p>
 <ul>
-<li>That is the <strong>adjoint equation</strong>: one transposed solve, independent of <span class="math inline">\(p\)</span>.</li>
-<li>Then <span class="math inline">\(\dfrac{dL}{d\theta} = \dfrac{\partial L}{\partial\theta} - \lambda^{\top}\dfrac{\partial g}{\partial\theta}\)</span>, a few cheap dot products.</li>
+<li>That is the <strong>adjoint equation</strong>: one transposed solve, independent of the number of parameters <span class="math inline">\(p\)</span>.</li>
+<li>Then <span class="math display">\[\frac{dL}{d\theta} = \frac{\partial L}{\partial\theta} - \lambda^{\top}\frac{\partial g}{\partial\theta}.\]</span></li>
 </ul>
+<p>The final gradient still has <span class="math inline">\(p\)</span> entries, so accumulating or storing it is not literally free. The key saving is that the expensive linearized state solve is done once, not once per parameter.</p>
 <blockquote class="blockquote">
 <p>Propagates a cotangent <em>backward</em>: this is <em>reverse mode</em>.</p>
 </blockquote>
@@ -337,11 +338,11 @@ Important
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Important</span>The asymmetry that makes ML and inversion possible
+<span class="screen-reader-only">Important</span>The asymmetry that makes ML and inversion practical
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>A scalar loss with many parameters: the direct method costs <span class="math inline">\(O(p)\)</span> solves, the adjoint costs one, regardless of <span class="math inline">\(p\)</span>. That is why we can fit models with millions of parameters.</p>
+<p>For a scalar loss with many parameters, the direct method costs <span class="math inline">\(O(p)\)</span> state-sensitivity solves. The adjoint method costs one transposed solve, followed by local gradient accumulation. That is why we can fit models with millions of parameters.</p>
 </div>
 </div>
 <p>Same gradient, very different cost. Confirm on a small linear constraint <span class="math inline">\(g(u,\theta)=Au-b(\theta)=0\)</span>:</p>
@@ -388,8 +389,8 @@ Important
 <section id="the-same-equation-everywhere-solvers-and-neural-networks" class="level2">
 <h2 class="anchored" data-anchor-id="the-same-equation-everywhere-solvers-and-neural-networks">3 · The same equation everywhere: solvers and neural networks</h2>
 <ul>
-<li>Nothing above assumed <span class="math inline">\(g\)</span> was a PDE.In fact <span class="math inline">\(g\)</span> can represent an arbitrary, potentially very complex function.</li>
-<li>Any computation that builds <span class="math inline">\(u\)</span> from <span class="math inline">\(\theta\)</span> through a chain of steps defines a constraint, and reverse-mode AD is the adjoint solve for it</li>
+<li>Nothing above required <span class="math inline">\(g\)</span> to be a PDE. It can represent any differentiable computation written as constraints.</li>
+<li>Any computation that builds <span class="math inline">\(u\)</span> from <span class="math inline">\(\theta\)</span> through a sequence of steps has a discrete adjoint. Reverse-mode AD is the automatic construction of that adjoint solve.</li>
 </ul>
 <section id="example-a-a-time-stepping-solver" class="level3">
 <h3 class="anchored" data-anchor-id="example-a-a-time-stepping-solver">Example A: a time-stepping solver</h3>
@@ -397,7 +398,8 @@ Important
 <p><span class="math display">\[g_0 = u_0 - u_{\text{init}},\qquad g_{k+1} = u_{k+1} - \Phi(u_k,\theta)\quad (k=0,\dots,N-1).\]</span></p>
 <p>The adjoint of this <em>whole system</em> is §2’s equation with <span class="math inline">\(u\to\mathbf{U}\)</span>, one transposed linear solve for the big adjoint <span class="math inline">\(\boldsymbol{\lambda}=(\lambda_0,\dots,\lambda_N)\)</span>:</p>
 <p><span class="math display">\[\Big(\frac{\partial g}{\partial \mathbf{U}}\Big)^{\!\top}\boldsymbol{\lambda} = \Big(\frac{\partial L}{\partial \mathbf{U}}\Big)^{\!\top}.\]</span></p>
-<p>That is one unknown per time level (tens to thousands for a real time-dependent solve). We never build it, because <span class="math inline">\(\partial g/\partial \mathbf{U}\)</span> has structure that can be exploited. Its transpose is upper-bidiagonal: <span class="math display">\[\frac{\partial g}{\partial \mathbf{U}}=
+<p>We usually never build this full system. Its structure does the work for us. For an explicit one-step method, <span class="math inline">\(\partial g/\partial \mathbf{U}\)</span> is block lower-bidiagonal, so its transpose is block upper-bidiagonal:</p>
+<p><span class="math display">\[\frac{\partial g}{\partial \mathbf{U}}=
 \begin{pmatrix}
 I &amp; &amp; &amp; \\
 -\Phi'_0 &amp; I &amp; &amp; \\
@@ -412,16 +414,16 @@ I &amp; -\Phi'^{\top}_0 &amp; &amp; \\
 &amp; &amp; \ddots &amp; -\Phi'^{\top}_{N-1} \\
 &amp; &amp; &amp; I
 \end{pmatrix}.\]</span></p>
-<p>An upper-triangular system solves by back-substitution from the bottom up, so the one big solve <em>decomposes into a tiny per-step problem</em>:</p>
+<p>An upper-triangular system solves by back-substitution from the bottom up, so the one big solve decomposes into a per-step recurrence:</p>
 <p><span class="math display">\[\lambda_N = \frac{\partial L}{\partial u_N},\qquad
 \lambda_k = \frac{\partial L}{\partial u_k} + \Phi'^{\top}_k\,\lambda_{k+1}\ \ (k=N\!-\!1,\dots,0).\]</span></p>
-<p>The adjoint of the entire trajectory is just this cotangent carried backward, one step at a time; the structure of <span class="math inline">\(\partial g/\partial \mathbf{U}\)</span> turned a single enormous solve into <span class="math inline">\(N\)</span> small ones.</p>
-<p>And notice what each step actually does:</p>
+<p>The adjoint of the entire trajectory is this cotangent carried backward, one step at a time. The structure of <span class="math inline">\(\partial g/\partial \mathbf{U}\)</span> turns a large transposed solve into a local backward sweep.</p>
+<p>Each step does one local operation:</p>
 <ul>
-<li>the term <span class="math inline">\(\Phi'^{\top}_k\lambda_{k+1}\)</span> applies the step’s <em>transpose-Jacobian</em> to the incoming cotangent <span class="math inline">\(\lambda_{k+1}\)</span>;</li>
-<li>it is a matrix-vector product, so <span class="math inline">\(\Phi'_k\)</span> is never formed, let alone the full-system Jacobian.</li>
+<li><span class="math inline">\(\Phi'^{\top}_k\lambda_{k+1}\)</span> applies the step’s <em>transpose-Jacobian</em> to the incoming cotangent <span class="math inline">\(\lambda_{k+1}\)</span>.</li>
+<li>It is a matrix-vector product, so <span class="math inline">\(\Phi'_k\)</span> is never formed, let alone the full-system Jacobian.</li>
 </ul>
-<p>The backward sweep is just each step applying that one local operation in turn. Every operation supplies a single local rule and AD chains them, with no gradient for the full model ever written by hand. (We name these local operations in §4.)</p>
+<p>Every operation supplies a local derivative rule, and AD chains those local rules into the whole-model gradient. We name these local operations in §4.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -432,12 +434,12 @@ I &amp; -\Phi'^{\top}_0 &amp; &amp; \\
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>A scalar upper-triangular solve <span class="math inline">\(Ux=b\)</span> runs bottom-up: <span class="math inline">\(x_k = \big(b_k - \sum_{j&gt;k} U_{kj}\,x_j\big)/U_{kk}\)</span>. A <em>block</em> triangular system uses the identical algorithm, just promote scalars to blocks: “multiply by <span class="math inline">\(U_{kj}\)</span>” becomes a matrix–vector product, and “divide by <span class="math inline">\(U_{kk}\)</span>” becomes “apply <span class="math inline">\(U_{kk}^{-1}\)</span>”, i.e.&nbsp;<em>solve</em> the small system <span class="math inline">\(U_{kk}\,x_k=\text{rhs}\)</span>, never forming the inverse.</p>
+<p>A scalar upper-triangular solve <span class="math inline">\(Ux=b\)</span> runs bottom-up: <span class="math inline">\(x_k = \big(b_k - \sum_{j&gt;k} U_{kj}\,x_j\big)/U_{kk}\)</span>. A <em>block</em> triangular system uses the identical algorithm, just promote scalars to blocks: “multiply by <span class="math inline">\(U_{kj}\)</span>” becomes a matrix-vector product, and “divide by <span class="math inline">\(U_{kk}\)</span>” becomes “apply <span class="math inline">\(U_{kk}^{-1}\)</span>”, i.e.&nbsp;solve the small system <span class="math inline">\(U_{kk}\,x_k=\text{rhs}\)</span>, never forming the inverse.</p>
 <ul>
 <li><em>Explicit step</em>: diagonal blocks are <span class="math inline">\(I\)</span>, so the divide is trivial: pure substitution, exactly the recurrence above.</li>
 <li><em>Implicit step</em> (e.g.&nbsp;backward-Euler): the diagonal block is the step’s own Jacobian, so each “divide” is one small linear solve.</li>
 </ul>
-<p>Either way, it is the discrete adjoint of the lecture’s glacier solver.</p>
+<p>Either way, it is the discrete adjoint of the solver actually being differentiated.</p>
 </div>
 </div>
 </section>
@@ -529,7 +531,7 @@ dL/dtheta accumulates one contribution per step (theta is shared):
 <h3 class="anchored" data-anchor-id="example-b-a-neural-network-is-the-same-problem">Example B: a neural network is the same problem</h3>
 <p>The same story, with “time step” → “layer.” A feedforward network is a composition,</p>
 <p><span class="math display">\[x_0 = \text{input},\qquad x_{k+1} = f_k(x_k,\theta_k),\qquad L = \ell(x_n),\qquad x_k\in\mathbb{R}^{d_k}.\]</span></p>
-<p>Treat each layer’s output as an unknown and each layer as a constraint <span class="math inline">\(g_{k+1} = x_{k+1}-f_k(x_k,\theta_k)=0\)</span>. The adjoint of the <em>whole network</em> is again one big transposed solve, and again <span class="math inline">\(\partial g/\partial x\)</span> is block lower-bidiagonal (each layer depends only on the previous), with <span class="math inline">\(f'_k\equiv\partial f_k/\partial x_k\)</span>:</p>
+<p>Treat each layer’s output as an unknown and each layer as a constraint <span class="math inline">\(g_{k+1} = x_{k+1}-f_k(x_k,\theta_k)=0\)</span>. The adjoint of the <em>whole network</em> is again one big transposed solve. For a plain chain of layers, <span class="math inline">\(\partial g/\partial x\)</span> is block lower-bidiagonal, with <span class="math inline">\(f'_k\equiv\partial f_k/\partial x_k\)</span>:</p>
 <p><span class="math display">\[\frac{\partial g}{\partial x}=
 \begin{pmatrix}
 I &amp; &amp; &amp; \\
@@ -548,13 +550,23 @@ I &amp; -f'^{\top}_0 &amp; &amp; \\
 <p>The structure decomposes that big solve into a backward sweep:</p>
 <ul>
 <li>Diagonal blocks are identities, so no inverse is needed: pure back-substitution.</li>
-<li>Off-diagonal blocks <span class="math inline">\(f'_k\in\mathbb{R}^{d_{k+1}\times d_k}\)</span> are rectangular when layers change width; the structure stays triangular. (Skip connections, as in ResNets, just add more sub-diagonals, still triangular.)</li>
-<li>That backward sweep is exactly <em>backpropagation</em>:</li>
+<li>Off-diagonal blocks <span class="math inline">\(f'_k\in\mathbb{R}^{d_{k+1}\times d_k}\)</span> may be rectangular when layers change width; the triangular structure remains.</li>
+<li>The backward sweep is exactly <em>backpropagation</em>:</li>
 </ul>
 <p><span class="math display">\[\lambda_n = \Big(\frac{\partial\ell}{\partial x_n}\Big)^{\!\top},\qquad
 \lambda_k = \Big(\frac{\partial f_k}{\partial x_k}\Big)^{\!\top}\lambda_{k+1},\qquad
 \frac{\partial L}{\partial\theta_k} = \Big(\frac{\partial f_k}{\partial\theta_k}\Big)^{\!\top}\lambda_{k+1}.\]</span></p>
-<p>Each factor applies the layer’s transpose-Jacobian <span class="math inline">\(\big(\partial f_k/\partial x_k\big)^{\!\top}\)</span> to the incoming <span class="math inline">\(\lambda_{k+1}\)</span>: a matrix-vector product per layer, so backprop is simply that chain, each layer knowing only its own local rule.</p>
+<p>If the loss also touches intermediate activations, the local source term simply reappears:</p>
+<p><span class="math display">\[\lambda_k =
+\Big(\frac{\partial L}{\partial x_k}\Big)^{\!\top}
++
+\Big(\frac{\partial f_k}{\partial x_k}\Big)^{\!\top}\lambda_{k+1}.\]</span></p>
+<p>More complex networks fit the same framework. A chain gives a block lower-bidiagonal constraint Jacobian. A general acyclic computation graph gives a <strong>sparse block lower-triangular</strong> Jacobian after a topological ordering. Backprop is then reverse topological substitution: each node sends transpose-Jacobian contributions to its parents, and contributions from multiple children add. Skip connections, branches, merges, and shared weights change the sparsity pattern, not the principle.</p>
+<p>For example, a residual block</p>
+<p><span class="math display">\[x_{k+1}=x_k+F_k(x_k,\theta_k)\]</span></p>
+<p>has the backward update</p>
+<p><span class="math display">\[\lambda_k = \lambda_{k+1} + \Big(\frac{\partial F_k}{\partial x_k}\Big)^{\!\top}\lambda_{k+1},\]</span></p>
+<p>so the skip connection contributes the identity path in the adjoint.</p>
 <p>Same three reasons the adjoint is the right tool as for a glacier: scalar loss, many parameters, and a triangular <span class="math inline">\(\partial g/\partial x\)</span> that turns the big solve into a cheap backward pass. For an MLP <span class="math inline">\(f_k(x)=\sigma(W_k x+b_k)\)</span> it is the textbook rule <span class="math inline">\(\lambda_k=W_k^{\!\top}\big(\sigma'(z_k)\odot\lambda_{k+1}\big)\)</span>, matching <code>jax.grad</code>:</p>
 <div id="90d2c511" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-07-02T03:18:37.531414Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-07-02T03:18:37.531270Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-07-02T03:18:38.942627Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-07-02T03:18:38.941500Z&quot;}}" data-execution_count="4">
 <details open="" class="code-fold">
@@ -612,7 +624,13 @@ I &amp; -f'^{\top}_0 &amp; &amp; \\
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>A glacier solver and a neural network look different, yet their gradients are the same computation: - Write the model as constraints <span class="math inline">\(g=0\)</span>, then solve the single transposed (adjoint) system <span class="math inline">\((\partial g/\partial u)^{\!\top}\lambda=(\partial L/\partial u)^{\!\top}\)</span>. - Reverse-mode AD does exactly this automatically: each operation supplies only its own local derivative rule, and AD chains them into the whole-model gradient.</p>
+<p>A glacier solver and a neural network look different, but their scalar-loss gradients have the same discrete-adjoint structure:</p>
+<ul>
+<li>Write the model as constraints <span class="math inline">\(g=0\)</span>.</li>
+<li>Solve the transposed adjoint system <span class="math inline">\((\partial g/\partial u)^{\!\top}\lambda=(\partial L/\partial u)^{\!\top}\)</span>.</li>
+<li>Accumulate parameter gradients from local transpose-Jacobian products.</li>
+</ul>
+<p>Reverse-mode AD automates this: each operation supplies its local derivative rule, and AD chains those rules into the whole-model gradient.</p>
 </div>
 </div>
 </section>
@@ -621,21 +639,21 @@ I &amp; -f'^{\top}_0 &amp; &amp; \\
 <h2 class="anchored" data-anchor-id="forward-mode-the-same-system-the-other-direction">4 · Forward mode: the same system, the other direction</h2>
 <p>Reverse mode gave the whole gradient in one backward pass. Forward mode is the other way to use the same system, and it wins in the opposite regime. Which mode to reach for is set by the shape of the Jacobian:</p>
 <ul>
-<li><em>Scalar loss, many parameters</em> (a <span class="math inline">\(1\times n\)</span> Jacobian): reverse wins. One backward pass yields the entire gradient, whereas forward would need <span class="math inline">\(n\)</span> passes. This is the setting for training and inversion.</li>
-<li><em>Few inputs, many outputs</em> (an <span class="math inline">\(m\times 1\)</span> Jacobian): forward wins. One forward pass suffices, whereas reverse would need <span class="math inline">\(m\)</span> passes. A typical case is the sensitivity of a whole trajectory to a single parameter.</li>
+<li><em>Scalar loss, many parameters</em> (a <span class="math inline">\(1\times n\)</span> Jacobian): reverse is usually the right default. One backward pass yields the entire gradient, whereas forward would need one pass per input direction. This is the setting for training and inversion.</li>
+<li><em>Few inputs, many outputs</em> (an <span class="math inline">\(m\times 1\)</span> Jacobian): forward wins. One forward pass suffices, whereas reverse would need one pass per output direction. A typical case is the sensitivity of a whole trajectory to a single parameter.</li>
 <li><em>Memory</em>: forward carries tangents alongside the values, so it needs no history (<span class="math inline">\(O(1)\)</span> extra memory); reverse must revisit each forward state on the way back, so it stores or recomputes them (the reason long solves need checkpointing, §5).</li>
 </ul>
 <p>The two modes also compute <em>different objects</em>, which is worth stating plainly:</p>
 <ul>
 <li>Reverse propagates the adjoint <span class="math inline">\(\boldsymbol{\lambda}\)</span> (how the loss responds to each state), and returns <span class="math inline">\(dL/d\theta\)</span> for every parameter at once.</li>
-<li>Forward propagates the sensitivity <span class="math inline">\(d\mathbf{U}/d\theta\)</span> (how every state responds to one chosen parameter direction). This is a <em>directional</em> derivative; contracting it with <span class="math inline">\(\partial L/\partial \mathbf{U}\)</span> gives the loss’s slope along that single direction, and you repeat once per parameter for the full gradient.</li>
+<li>Forward propagates the sensitivity <span class="math inline">\(d\mathbf{U}/d\theta\)</span> (how every state responds to one chosen parameter direction). This is a <em>directional</em> derivative; contracting it with <span class="math inline">\(\partial L/\partial \mathbf{U}\)</span> gives the loss’s slope along that single direction, and you repeat over directions if you need the full gradient.</li>
 </ul>
 <p>Mechanically, forward solves the <em>same</em> big system as Example A, as written rather than transposed. Differentiating <span class="math inline">\(g(\mathbf{U},\theta)=0\)</span> gives one big linear solve:</p>
 <p><span class="math display">\[\Big(\frac{\partial g}{\partial \mathbf{U}}\Big)\frac{d\mathbf{U}}{d\theta} = -\frac{\partial g}{\partial\theta}.\]</span></p>
 <p>Because <span class="math inline">\(\partial g/\partial \mathbf{U}\)</span> is the same block lower-bidiagonal matrix, forward-substitution (top down) decomposes it into a per-step <em>tangent</em> recurrence:</p>
 <p><span class="math display">\[\frac{dx_0}{d\theta} = 0,\qquad \frac{dx_{k+1}}{d\theta} = \Phi'_k\,\frac{dx_k}{d\theta} + \frac{\partial\Phi(x_k,\theta)}{\partial\theta}.\]</span></p>
 <p>Here <span class="math inline">\(\Phi'_k\,(dx_k/d\theta)\)</span> applies the step’s Jacobian to the incoming tangent: again a matrix-vector product, but front to back this time.</p>
-<p>Reverse solved the transpose bottom up (a cotangent, pulled back); forward solves it as written top down (a tangent, pushed forward). Same triangular matrix, opposite ends.</p>
+<p>Reverse solves the transpose bottom up (a cotangent, pulled back); forward solves the original system top down (a tangent, pushed forward). Same triangular matrix, opposite ends.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -646,12 +664,12 @@ I &amp; -f'^{\top}_0 &amp; &amp; \\
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Look back at both recurrences. Each does one thing per step: apply a local Jacobian to a vector.</p>
+<p>Look back at both recurrences. Each does one thing per step: apply a local Jacobian, or its transpose, to a vector.</p>
 <ul>
-<li>Forward applies <span class="math inline">\(\Phi'_k\)</span> to a tangent, <span class="math inline">\(t\mapsto\Phi'_k\,t\)</span>. This is a <strong>Jacobian-vector product</strong> (JVP, <code>jax.jvp</code>): one pass per input.</li>
-<li>Reverse applies <span class="math inline">\(\Phi'^{\top}_k\)</span> to a cotangent, <span class="math inline">\(\bar a\mapsto\Phi'^{\top}_k\,\bar a\)</span>. This is a <strong>vector-Jacobian product</strong> (VJP, <code>jax.vjp</code>): one pass per output. A gradient is the VJP seeded with <span class="math inline">\(\pmb v=1\)</span>.</li>
+<li>Forward applies <span class="math inline">\(\Phi'_k\)</span> to a tangent, <span class="math inline">\(t\mapsto\Phi'_k\,t\)</span>. This is a <strong>Jacobian-vector product</strong> (JVP, <code>jax.jvp</code>): one pass per input direction.</li>
+<li>Reverse applies <span class="math inline">\(\Phi'^{\top}_k\)</span> to a cotangent, <span class="math inline">\(\bar a\mapsto\Phi'^{\top}_k\,\bar a\)</span>. This is a <strong>vector-Jacobian product</strong> (VJP, <code>jax.vjp</code>): one pass per output direction. A scalar-loss gradient is the VJP seeded with <span class="math inline">\(1\)</span>.</li>
 </ul>
-<p>So the recurrences never form <span class="math inline">\(\Phi'_k\)</span>, let alone the full-system Jacobian: each operation only supplies these two matrix-vector rules, and AD chains them. That is the whole of what AD does.</p>
+<p>So the recurrences never form <span class="math inline">\(\Phi'_k\)</span>, let alone the full-system Jacobian: each operation only supplies these matrix-vector rules, and AD chains them.</p>
 </div>
 </div>
 <p>The tangent recurrence, checked against the full forward solve and <code>jax.jvp</code> on the same 2-D system as Example A:</p>
@@ -696,9 +714,9 @@ dL/dtheta (jax.jvp)              = +0.034802</code></pre>
 </div>
 <div class="callout-body-container callout-body">
 <ul>
-<li><em>AD</em> supplies two things mechanically: each operation’s local derivative, and a rule to chain them (forward = JVP, reverse = VJP).</li>
-<li><em>The adjoint method</em> is the mathematical content of the reverse rule: adjoint variables swept backward, the transposed solve. It predates AD and can be derived by hand.</li>
-<li>So reverse-mode AD <em>is</em> the adjoint method, automated; AD just fills in every local derivative. Forward mode is the genuine alternative, wrong for a scalar loss.</li>
+<li><em>AD</em> supplies local derivative rules and a way to compose them through a program: forward mode uses JVPs, reverse mode uses VJPs.</li>
+<li><em>The adjoint method</em> is the reverse sensitivity calculation written as a transposed solve with adjoint variables. It predates modern AD and can be derived by hand.</li>
+<li>In the scalar-loss, many-parameter setting, reverse-mode AD is the adjoint method automated. Forward mode is the complementary tool: less efficient for full scalar-loss gradients with many parameters, but ideal for directional derivatives and small-input sensitivity studies.</li>
 </ul>
 </div>
 </div>
@@ -736,12 +754,12 @@ dL/dtheta (jax.jvp)              = +0.034802</code></pre>
 <div class="callout-body-container callout-body">
 <p>Training a UDE backpropagates through every time step. Look at where the forward state enters the reverse recurrence:</p>
 <p><span class="math display">\[\lambda_k = \frac{\partial L}{\partial u_k} + \underbrace{\Big(\frac{\partial\Phi(u_k,\theta)}{\partial u_k}\Big)^{\!\top}}_{\text{needs the forward state }u_k}\lambda_{k+1}.\]</span></p>
-<p>Every step needs its <span class="math inline">\(u_k\)</span> to evaluate <span class="math inline">\(\Phi'_k\)</span>, so the whole forward trajectory must be available on the way back. Storing all of it is <span class="math inline">\(O(N)\)</span> in the number of steps:</p>
+<p>Every step needs its <span class="math inline">\(u_k\)</span> to evaluate <span class="math inline">\(\Phi'_k\)</span>, so the forward trajectory must be available on the way back. Storing all of it is <span class="math inline">\(O(N)\)</span> in the number of steps:</p>
 <ul>
 <li>our toy glacier: ~600 steps for a spin-up, so storing all is fine;</li>
 <li>a real inversion (Bolibar et al.: ~<span class="math inline">\(10^5\)</span> ODEs over a 2-D grid, many years): storing every state is infeasible.</li>
 </ul>
-<p>Checkpointing keeps only <span class="math inline">\(O(\log N)\)</span> states and recomputes the rest forward, which is safe because the forward solve only ever runs forward in time. This is why the lecture’s solver passes <code>RecursiveCheckpointAdjoint</code>.</p>
+<p>Checkpointing keeps only selected states and recomputes the rest forward, which is safe because the forward solve only ever runs forward in time. This is why the lecture’s solver passes <code>RecursiveCheckpointAdjoint</code>.</p>
 </div>
 </div>
 <p>Hand-rolled <code>revolve</code> on a chain of <span class="math inline">\(N\)</span> time steps, to see the memory/compute trade and confirm the gradient is unchanged:</p>

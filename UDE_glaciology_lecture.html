@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.9.37">
+<meta name="generator" content="quarto-1.9.38">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -74,10 +74,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-de63f62b328812d8e578a4d74e282472.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-3dfdabff9cb45623dc2121e8c2e89e68.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-d90d3ffaf5042f4372420b59a33bd6a1.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -188,9 +188,9 @@ window.Quarto = {
    
   <ul class="collapse">
   <li><a href="#why-universal-differential-equations" id="toc-why-universal-differential-equations" class="nav-link active" data-scroll-target="#why-universal-differential-equations">1 · Why universal differential equations?</a></li>
-  <li><a href="#example-ude-sia-with-learned-a" id="toc-example-ude-sia-with-learned-a" class="nav-link" data-scroll-target="#example-ude-sia-with-learned-a">2 · Example UDE: SIA with Learned A</a></li>
+  <li><a href="#example-ude-sia-with-learned-at" id="toc-example-ude-sia-with-learned-at" class="nav-link" data-scroll-target="#example-ude-sia-with-learned-at">2 · Example UDE: SIA with learned <span class="math inline">\(A(T)\)</span></a></li>
   <li><a href="#ml-reminders-the-parts-we-lean-on" id="toc-ml-reminders-the-parts-we-lean-on" class="nav-link" data-scroll-target="#ml-reminders-the-parts-we-lean-on">3 · ML reminders (the parts we lean on)</a></li>
-  <li><a href="#the-ude-idea-training-as-pde-constrained-optimization" id="toc-the-ude-idea-training-as-pde-constrained-optimization" class="nav-link" data-scroll-target="#the-ude-idea-training-as-pde-constrained-optimization">4 · The UDE idea: training as PDE-constrained optimization</a></li>
+  <li><a href="#the-ude-idea-training-as-differential-equation-constrained-optimization" id="toc-the-ude-idea-training-as-differential-equation-constrained-optimization" class="nav-link" data-scroll-target="#the-ude-idea-training-as-differential-equation-constrained-optimization">4 · The UDE idea: training as differential-equation-constrained optimization</a></li>
   <li><a href="#worked-example-recovering-glens-creep-parameter-at" id="toc-worked-example-recovering-glens-creep-parameter-at" class="nav-link" data-scroll-target="#worked-example-recovering-glens-creep-parameter-at">5 · Worked example: recovering Glen’s creep parameter <span class="math inline">\(A(T)\)</span></a></li>
   <li><a href="#from-the-toy-to-the-real-thing-bolibar-et-al.-2023" id="toc-from-the-toy-to-the-real-thing-bolibar-et-al.-2023" class="nav-link" data-scroll-target="#from-the-toy-to-the-real-thing-bolibar-et-al.-2023">6 · From the toy to the real thing: Bolibar et al.&nbsp;(2023)</a></li>
   <li><a href="#pitfalls-frontier" id="toc-pitfalls-frontier" class="nav-link" data-scroll-target="#pitfalls-frontier">7 · Pitfalls &amp; frontier</a></li>
@@ -208,7 +208,7 @@ window.Quarto = {
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
 <div class="quarto-title-block"><div><h1 class="title">Universal Differential Equations for Glaciology</h1><button type="button" class="btn code-tools-button dropdown-toggle" id="quarto-code-tools-menu" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi"></i> Code</button><ul class="dropdown-menu dropdown-menu-end" aria-labelelledby="quarto-code-tools-menu"><li><a id="quarto-show-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Show All Code</a></li><li><a id="quarto-hide-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Hide All Code</a></li></ul></div></div>
-<p class="subtitle lead">Learning the hidden physics of ice flow with differentiable programming</p>
+<p class="subtitle lead">Learning uncertain ice-flow closures with differentiable programming</p>
 </div>
 
 
@@ -225,7 +225,7 @@ window.Quarto = {
 </header>
 
 
-<p><strong>Main idea.</strong> Keep the physics you trust, and use a flexible parameterization (such as a neural network) to learn the parts you don’t. Then fit it by differentiating through the ice-flow solver.</p>
+<p><strong>Main idea.</strong> Keep the physics you trust, use a flexible parameterization — here, a small neural network — for the closure you do not know well, and fit it by differentiating <em>through</em> the ice-flow solver.</p>
 <div id="4b8ecccc" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-07-01T22:11:57.444367Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-07-01T22:11:57.444247Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-07-01T22:11:58.270621Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-07-01T22:11:58.269477Z&quot;}}" data-execution_count="1">
 <details open="" class="code-fold">
 <summary>Code</summary>
@@ -245,48 +245,49 @@ window.Quarto = {
 </div>
 <section id="why-universal-differential-equations" class="level2">
 <h2 class="anchored" data-anchor-id="why-universal-differential-equations">1 · Why universal differential equations?</h2>
-<p>Two ways to model a glacier, each with a weakness:</p>
-<p><strong>Physics</strong></p>
+<p>Two ways to model a glacier, each with strengths and limitations:</p>
+<p><strong>Physics-based models</strong></p>
 <ul>
-<li>Built from conservation laws.</li>
-<li>Interpretable and extrapolates, <em>but</em> only as good as its weakest assumption, and contains emperical closure we don’t really know.</li>
+<li>Built from conservation laws and interpretable assumptions.</li>
+<li>Often extrapolate better when those assumptions are appropriate, but predictions can be limited by uncertain parameters and empirical closures.</li>
 </ul>
-<p><strong>Data Driven (Machine learning)</strong></p>
+<p><strong>Data-driven models</strong></p>
 <ul>
-<li>Can fit almost anything <em>but</em> is data-hungry, ignores known physics, and doesn’t extrapolate.</li>
+<li>Flexible and able to learn patterns from observations.</li>
+<li>Often data-hungry, and extrapolation depends strongly on the training distribution and the model’s inductive bias.</li>
 </ul>
-<p>A <strong>Universal Differential Equation (UDE)</strong> keeps the trusted structure and replaces <em>only the uncertain closure</em> with a learnable function <span class="math inline">\(\mathcal{U}_\theta\)</span> (a small neural network):</p>
+<p>A <strong>Universal Differential Equation (UDE)</strong> combines these ideas: keep the trusted structure and replace <em>only the uncertain closure</em> with a learnable function <span class="math inline">\(\mathcal{U}_\theta\)</span> (a small neural network):</p>
 <p><span class="math display">\[\frac{du}{dt} = f\big(u, t,\; \mathcal{U}_\theta(u,t)\big).\]</span></p>
-<p>We fit <span class="math inline">\(\theta\)</span> so the <em>solution</em> matches observations. Because we infer a whole <strong>function</strong>, this is <strong>functional inversion</strong> (Rackauckas et al., 2020; Bolibar et al., 2023).</p>
+<p>We fit <span class="math inline">\(\theta\)</span> so the <em>solution</em> matches observations. Because we infer a whole <strong>function</strong>, this is an example of <strong>functional inversion</strong> (Rackauckas et al., 2020; Bolibar et al., 2023).</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Note</span>The key idea
+<span class="screen-reader-only">Note</span>1.1 The key idea
 </div>
 </div>
 <div class="callout-body-container callout-body">
 <ul>
-<li>We <em>trust</em> the conservation laws (mass, momentum) but are <em>unsure</em> about the constitutive closures like how ice deforms (Glen’s law), how it slides, how mass balance depends on climate.</li>
-<li>A UDE learns those closures while keeping the conservation laws intact.</li>
+<li>We keep the conservation laws (mass, momentum) and learn selected closures or parameterizations: for example, how ice deforms, how it slides, or how mass balance depends on climate.</li>
+<li>The neural network is not the whole glacier model. It is a learnable component inside the model.</li>
 </ul>
 </div>
 </div>
 </section>
-<section id="example-ude-sia-with-learned-a" class="level2">
-<h2 class="anchored" data-anchor-id="example-ude-sia-with-learned-a">2 · Example UDE: SIA with Learned A</h2>
+<section id="example-ude-sia-with-learned-at" class="level2">
+<h2 class="anchored" data-anchor-id="example-ude-sia-with-learned-at">2 · Example UDE: SIA with learned <span class="math inline">\(A(T)\)</span></h2>
 <ul>
-<li>Let’s suppose that we trust the physics in the SIA model, but we don’t know how to constrain the rate factor <span class="math inline">\(A\)</span></li>
-<li>We might know that <span class="math inline">\(A\)</span> depends on ice temperature, but we’re not sure what the relationship is</li>
+<li>Suppose we trust the mass-conservation/SIA structure, but do not know how to specify the rate factor <span class="math inline">\(A\)</span>.</li>
+<li>We expect <span class="math inline">\(A\)</span> to depend on ice temperature and material state, but the relationship is uncertain.</li>
 </ul>
 <p><span class="math display">\[\frac{\partial H}{\partial t} = \dot b + \frac{\partial}{\partial x}\!\left(D\,\frac{\partial S}{\partial x}\right),
 \qquad D = \Gamma\,H^{\,n+2}\Big|\partial_x S\Big|^{\,n-1},
 \qquad \Gamma = \frac{2A}{n+2}(\rho g)^n,\]</span></p>
 <p>with <span class="math inline">\(S = b + H\)</span> (surface), <span class="math inline">\(b\)</span> bedrock, and <span class="math inline">\(\dot b\)</span> climatic mass balance.</p>
-<p>The observable surface velocity comes from the same physics: <span class="math inline">\(\,u_s = \tfrac{2A}{n+1}(\rho g)^n H^{\,n+1}\big|\partial_x S\big|^{\,n}.\)</span></p>
-<p>The split between what we trust and what we don’t <em>is</em> the UDE:</p>
+<p>The observable surface velocity comes from the same SIA physics: <span class="math inline">\(\,u_s = \tfrac{2A}{n+1}(\rho g)^n H^{\,n+1}\big|\partial_x S\big|^{\,n}.\)</span></p>
+<p>The split between what we prescribe and what we learn <em>is</em> the UDE:</p>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 50%">
@@ -294,8 +295,8 @@ window.Quarto = {
 </colgroup>
 <thead>
 <tr class="header">
-<th>Trusted</th>
-<th>Uncertain (the closure to learn)</th>
+<th>Prescribed structure</th>
+<th>Learned closure</th>
 </tr>
 </thead>
 <tbody>
@@ -311,31 +312,31 @@ window.Quarto = {
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Note</span>Our target
+<span class="screen-reader-only">Note</span>2.1 Our target
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p><span class="math inline">\(A\)</span> depends on temperature, water content, and fabric (Cuffey &amp; Paterson, 2010): warmer ice is <em>softer</em> (larger <span class="math inline">\(A\)</span>). It is usually a tuned constant, but it should be a <em>function</em> of climate. <strong>That function is what we learn.</strong></p>
+<p><span class="math inline">\(A\)</span> depends on temperature, water content, fabric, and other material properties (Cuffey &amp; Paterson, 2010). In simple models it is often treated as a tuned constant or prescribed parameter. Here we learn a temperature-dependent version, <span class="math inline">\(A(T)\)</span>.</p>
 </div>
 </div>
 </section>
 <section id="ml-reminders-the-parts-we-lean-on" class="level2">
 <h2 class="anchored" data-anchor-id="ml-reminders-the-parts-we-lean-on">3 · ML reminders (the parts we lean on)</h2>
-<p>You already know these; three quick reminders, then the one new wrinkle:</p>
+<p>You already know these; two quick reminders, then the one new wrinkle:</p>
 <ul>
-<li><strong>A neural network is a flexible parametric function</strong> <span class="math inline">\(\mathcal{U}_\theta\)</span> with knobs <span class="math inline">\(\theta\)</span> that can approximate any continuous function.</li>
-<li><strong>Training = minimizing a loss <span class="math inline">\(L(\theta)\)</span> by gradient descent</strong> (<span class="math inline">\(\theta \leftarrow \theta - \eta\,\nabla_\theta L\)</span>; Adam is a smarter version).</li>
+<li><strong>A neural network is a flexible parametric function</strong> <span class="math inline">\(\mathcal{U}_\theta\)</span> with trainable parameters <span class="math inline">\(\theta\)</span>. With enough capacity, it can approximate broad classes of continuous functions on bounded domains.</li>
+<li><strong>Training = minimizing a loss <span class="math inline">\(L(\theta)\)</span> by gradient descent</strong> (<span class="math inline">\(\theta \leftarrow \theta - \eta\,\nabla_\theta L\)</span>; Adam is a more adaptive version).</li>
 </ul>
-<p>The one new wrinkle in a UDE: the quantity we differentiate is the output of an <strong>ODE / PDE solver</strong>.</p>
+<p>The new wrinkle in a UDE: the quantity we differentiate is the output of an <strong>ODE / PDE solver</strong>.</p>
 </section>
-<section id="the-ude-idea-training-as-pde-constrained-optimization" class="level2">
-<h2 class="anchored" data-anchor-id="the-ude-idea-training-as-pde-constrained-optimization">4 · The UDE idea: training as PDE-constrained optimization</h2>
+<section id="the-ude-idea-training-as-differential-equation-constrained-optimization" class="level2">
+<h2 class="anchored" data-anchor-id="the-ude-idea-training-as-differential-equation-constrained-optimization">4 · The UDE idea: training as differential-equation-constrained optimization</h2>
 <p>This is the conceptual heart of the lecture — the bridge from ordinary ML to physics.</p>
-<p><strong>Ordinary ML</strong> minimizes a loss directly over the network’s predictions:</p>
+<p><strong>Ordinary ML</strong> minimizes a loss directly over the network’s prediction:</p>
 <p><span class="math display">\[\min_\theta\; L(\mathcal{U}_\theta).\]</span></p>
-<p><strong>A UDE</strong> minimizes the same kind of misfit, but the prediction is only defined <em>through the solution of a differential equation</em>. The loss depends on the state <span class="math inline">\(u\)</span>, and <span class="math inline">\(u\)</span> is constrained to satisfy the physics:</p>
+<p><strong>A UDE</strong> minimizes a similar misfit, but the prediction is defined <em>through the solution of a differential equation</em>. The loss depends on the state <span class="math inline">\(u\)</span>, and <span class="math inline">\(u\)</span> is constrained by the model equations:</p>
 <p><span class="math display">\[\min_\theta\; L(u,\theta)\quad\text{subject to}\quad \frac{du}{dt}=f\big(u,t,\mathcal{U}_\theta(u,t)\big).\]</span></p>
-<p>That single “subject to” is the whole difference. It turns training into a <strong>PDE-constrained optimization</strong> problem: the conservation laws are a <em>hard constraint</em> the optimizer must respect, not something it can fit away.</p>
+<p>That single “subject to” is the main structural difference. In computation, the PDE is discretized and the solver returns a numerical state satisfying the discrete equations to solver tolerance. The optimizer can change the closure, but it cannot freely choose a state that bypasses the model.</p>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 20%">
@@ -356,33 +357,33 @@ window.Quarto = {
 <tbody>
 <tr class="odd">
 <td>RHS</td>
-<td>known <span class="math inline">\(f\)</span></td>
-<td><strong>known structure + learned <span class="math inline">\(\mathcal{U}_\theta\)</span></strong></td>
-<td>all network</td>
-<td>no DE</td>
+<td>prescribed <span class="math inline">\(f\)</span></td>
+<td><strong>prescribed structure + learned <span class="math inline">\(\mathcal{U}_\theta\)</span></strong></td>
+<td>mostly or entirely learned</td>
+<td>no DE structure</td>
 </tr>
 <tr class="even">
 <td>Data needed</td>
-<td>calibration</td>
-<td><strong>moderate</strong></td>
-<td>a lot</td>
-<td>a lot</td>
+<td>calibration / validation</td>
+<td><strong>closure-level data signal</strong></td>
+<td>trajectory data</td>
+<td>often data-rich settings</td>
 </tr>
 <tr class="odd">
-<td>Extrapolates / interpretable</td>
-<td>yes</td>
-<td><strong>largely yes</strong></td>
-<td>weakly</td>
-<td>no</td>
+<td>Extrapolation / interpretability</td>
+<td>often strong if assumptions hold</td>
+<td><strong>improved by retained physics</strong></td>
+<td>depends on learned dynamics</td>
+<td>often limited outside training data</td>
 </tr>
 </tbody>
 </table>
-<p>To take a gradient step we need <span class="math inline">\(\nabla_\theta L\)</span>, but <span class="math inline">\(L\)</span> depends on <span class="math inline">\(\theta\)</span> <em>only through the constrained solution</em> <span class="math inline">\(u\)</span>. Differentiating through that constraint is exactly the classical <strong>adjoint method</strong> of inverse modelling (MacAyeal, 1993). The payoff of differentiable programming: <code>jax.grad</code> “sees through” <code>diffeqsolve</code> and generates the adjoint automatically.</p>
+<p>To take a gradient step we need <span class="math inline">\(\nabla_\theta L\)</span>, but <span class="math inline">\(L\)</span> depends on <span class="math inline">\(\theta\)</span> <em>through the constrained solution</em> <span class="math inline">\(u\)</span>. Differentiating through that constraint is the same adjoint/reverse-mode idea used in inverse modelling (MacAyeal, 1993). In differentiable programming, <code>jax.grad</code> can trace the numerical solve and compute the required vector-Jacobian products without us deriving them by hand.</p>
 <section id="hard-vs.-soft-constraints-the-contrast-with-pinns" class="level3">
 <h3 class="anchored" data-anchor-id="hard-vs.-soft-constraints-the-contrast-with-pinns">Hard vs.&nbsp;soft constraints: the contrast with PINNs</h3>
-<p>You have likely already met <strong>PINNs</strong>, which represent the <em>solution</em> with a network and add the PDE residual to the loss as a penalty. In the language above, that is a <strong>penalty method</strong>: it relaxes the physics into the objective, a <strong>soft constraint</strong>.</p>
+<p>You have likely already met <strong>PINNs</strong>, which represent the <em>solution</em> with a network and add the PDE residual to the loss as a penalty. In the language above, that is a <strong>penalty method</strong>: the physics is encouraged by the objective, so it acts as a <strong>soft constraint</strong>.</p>
 <p><span class="math display">\[\text{PINN:}\qquad \min_\phi\; L_{\text{data}}(u_\phi)\;+\;\lambda\,\big\lVert\,\mathcal{R}[u_\phi]\,\big\rVert^2 .\]</span></p>
-<p>A <strong>UDE</strong> instead keeps the physics as a <strong>hard constraint</strong>: an embedded solver returns a state that satisfies the PDE exactly (to tolerance) at <em>every</em> iteration.</p>
+<p>A <strong>UDE</strong> instead generates the state with an embedded solver. The resulting state satisfies the discretized equations, within the chosen model, discretization, and solver tolerance.</p>
 <p><span class="math display">\[\text{UDE:}\qquad \min_\theta\; L_{\text{data}}(u,\theta)\quad\text{subject to}\quad \tfrac{du}{dt}=f\big(u,t,\mathcal{U}_\theta\big).\]</span></p>
 <table class="caption-top table">
 <colgroup>
@@ -394,7 +395,7 @@ window.Quarto = {
 <tr class="header">
 <th></th>
 <th>PINN (soft constraint)</th>
-<th>UDE (hard constraint)</th>
+<th>UDE (solver-constrained)</th>
 </tr>
 </thead>
 <tbody>
@@ -410,13 +411,13 @@ window.Quarto = {
 </tr>
 <tr class="odd">
 <td>Physics satisfied</td>
-<td>approximately, at convergence; sensitive to <span class="math inline">\(\lambda\)</span></td>
-<td>exactly each iteration (to solver tolerance)</td>
+<td>approximately, depending on optimization and penalty weight</td>
+<td>by the numerical solver, to discretization and solver tolerance</td>
 </tr>
 <tr class="even">
 <td>Conservation laws</td>
-<td>not guaranteed</td>
-<td>guaranteed by construction</td>
+<td>encouraged by the loss</td>
+<td>built into the solver/discretization</td>
 </tr>
 </tbody>
 </table>
@@ -435,15 +436,15 @@ window.Quarto = {
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Let’s pretend we trust the SIA but <em>don’t know</em> how <span class="math inline">\(A\)</span> depends on climate. We <em>can</em> observe surface velocities. Can we learn <span class="math inline">\(A(T)\)</span> directly from velocity data, <em>through</em> the ice-flow equation?</p>
+<p>Suppose we trust the SIA model but do not know how the rate factor <span class="math inline">\(A\)</span> varies with temperature. We can observe surface velocities. Can we learn <span class="math inline">\(A(T)\)</span> from those velocities, <em>through</em> the ice-flow equation?</p>
 </div>
 </div>
-<p>This is the headline experiment of Bolibar et al.&nbsp;(2023) in miniature, run as a <strong>synthetic twin experiment</strong> so we know the truth and can check:</p>
+<p>This is the headline experiment of Bolibar et al.&nbsp;(2023) in miniature, run as a <strong>synthetic twin experiment</strong> so we know the truth and can check the result. Because the same model family generates and fits the data, this isolates the closure-learning mechanism; real applications also include structural model error and additional identifiability challenges.</p>
 <ol type="1">
-<li>Invent a <em>hidden</em> law <span class="math inline">\(A_{\text{true}}(T)\)</span> (warmer ⇒ softer ice).</li>
+<li>Invent a <em>hidden</em> law <span class="math inline">\(A_{\text{true}}(T)\)</span> (warmer <span class="math inline">\(\Rightarrow\)</span> softer ice).</li>
 <li>Generate “observations”: glaciers at different temperatures, evolved a few decades; record surface velocities.</li>
-<li><em>Forget</em> <span class="math inline">\(A_{\text{true}}\)</span>. Replace <span class="math inline">\(A\)</span> with a network <span class="math inline">\(A_\theta(T)\)</span> and train it to match the velocities.</li>
-<li>Compare recovered <span class="math inline">\(A_\theta(T)\)</span> to the truth.</li>
+<li>Hide <span class="math inline">\(A_{\text{true}}\)</span>. Replace <span class="math inline">\(A\)</span> with a network <span class="math inline">\(A_\theta(T)\)</span> and train it to match the velocities.</li>
+<li>Compare recovered <span class="math inline">\(A_\theta(T)\)</span> to the truth, which was used only for evaluation.</li>
 </ol>
 <section id="the-known-physics-the-sia-flowline-model" class="level3">
 <h3 class="anchored" data-anchor-id="the-known-physics-the-sia-flowline-model">5.1 The known physics: the SIA flowline model</h3>
@@ -500,7 +501,7 @@ window.Quarto = {
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Ice flow is stiff diffusion (<span class="math inline">\(D \propto H^{n+2}\)</span>), so we integrate with a simple <strong>implicit (backward-Euler)</strong> scheme, which stays stable at large time steps. Each step solves a small nonlinear system (the <code>root_finder</code>).</p>
+<p>Ice flow is stiff diffusion (<span class="math inline">\(D \propto H^{n+2}\)</span>), so we integrate with a simple <strong>implicit (backward-Euler)</strong> scheme, which remains stable at relatively large time steps in this example. Each step solves a small nonlinear system (the <code>root_finder</code>).</p>
 </div>
 </div>
 <div id="619985c7" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-07-01T22:11:58.436790Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-07-01T22:11:58.436653Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-07-01T22:11:58.440943Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-07-01T22:11:58.439921Z&quot;}}" data-execution_count="4">
@@ -534,13 +535,14 @@ window.Quarto = {
 </section>
 <section id="the-hidden-truth-and-the-synthetic-observations" class="level3">
 <h3 class="anchored" data-anchor-id="the-hidden-truth-and-the-synthetic-observations">5.2 The hidden truth and the synthetic observations</h3>
-<p>A controlled recipe, so it’s clear exactly what generates the data:</p>
+<p>A controlled recipe, so it is clear exactly what generates the data:</p>
 <ol type="1">
 <li><strong>Spin up one shared glacier</strong>: evolve from bare bedrock to a quasi-steady starting geometry <span class="math inline">\(H_{\text{init}}\)</span>, used by all eight.</li>
 <li><strong>Pick eight temperatures</strong> (<span class="math inline">\(-25\)</span> to <span class="math inline">\(-3\)</span> °C) and give each its hidden softness <span class="math inline">\(A_{\text{true}}(T)\)</span>, <em>the only thing that differs between glaciers</em>.</li>
 <li><strong>Evolve each for <code>T_OBS</code> = 30 years</strong> under the <strong>identical climate</strong> (the same altitude–mass-balance law). Softer (warmer) ice deforms faster.</li>
 <li><strong>Record surface velocities</strong> <span class="math inline">\(U_{\text{obs}}\)</span>: these are the training targets.</li>
 </ol>
+<p>The training data are velocities only. The hidden <span class="math inline">\(A_{\text{true}}(T)\)</span> is not given to the optimizer; it is kept aside for the final check.</p>
 <div id="f179abe0" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-07-01T22:11:58.442114Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-07-01T22:11:58.442000Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-07-01T22:12:00.483691Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-07-01T22:12:00.482728Z&quot;}}" data-execution_count="5">
 <details open="" class="code-fold">
 <summary>Code</summary>
@@ -620,7 +622,7 @@ observed peak velocity per glacier [m/a]: [ 3.8  5.2  7.4 12.7 21.4 30.7 33.8 44
 </div>
 </div>
 </div>
-<p>Warmer glaciers flow faster for the same geometry: softer ice. That spread is the signal we invert.</p>
+<p>Warmer glaciers flow faster for the same geometry in this synthetic setup: softer ice. That spread is the signal we invert.</p>
 </section>
 <section id="the-learnable-closure-a-neural-network-a_thetat" class="level3">
 <h3 class="anchored" data-anchor-id="the-learnable-closure-a-neural-network-a_thetat">5.3 The learnable closure: a neural network <span class="math inline">\(A_\theta(T)\)</span></h3>
@@ -630,14 +632,14 @@ observed peak velocity per glacier [m/a]: [ 3.8  5.2  7.4 12.7 21.4 30.7 33.8 44
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Note</span>Three good-practice choices for the network
+<span class="screen-reader-only">Note</span>Three useful modeling choices for the network
 </div>
 </div>
 <div class="callout-body-container callout-body">
 <ul>
 <li><strong>Normalize the input</strong>: feed <span class="math inline">\((T+14)/11\)</span> so it is <span class="math inline">\(O(1)\)</span>.</li>
-<li><strong>Learn a deviation from a physics baseline</strong>: output <span class="math inline">\(A_\theta(T)=A_\mathrm{ref}\,e^{\,\mathrm{net}(T)}\)</span>, i.e.&nbsp;learn <span class="math inline">\(\log A\)</span> relative to a reference. Scale-free (A spans orders of magnitude), positive by construction, and non-saturating.</li>
-<li><strong>Initialization then takes care of itself</strong>: with the normalized input and the log-deviation form, the untrained network starts flat and near <span class="math inline">\(A_\mathrm{ref}\)</span>, in range.</li>
+<li><strong>Learn a deviation from a physics baseline</strong>: output <span class="math inline">\(A_\theta(T)=A_\mathrm{ref}\,e^{\,\mathrm{net}(T)}\)</span>, i.e.&nbsp;learn <span class="math inline">\(\log A\)</span> relative to a reference. This is scale-aware because <span class="math inline">\(A\)</span> spans orders of magnitude, and it keeps <span class="math inline">\(A\)</span> positive by construction.</li>
+<li><strong>Make initialization well behaved</strong>: with the normalized input and the log-deviation form, the untrained network starts nearly flat and near <span class="math inline">\(A_\mathrm{ref}\)</span>.</li>
 </ul>
 </div>
 </div>
@@ -668,7 +670,7 @@ observed peak velocity per glacier [m/a]: [ 3.8  5.2  7.4 12.7 21.4 30.7 33.8 44
 </section>
 <section id="the-loss-gradients-through-the-solver" class="level3">
 <h3 class="anchored" data-anchor-id="the-loss-gradients-through-the-solver">5.4 The loss: gradients <em>through</em> the solver</h3>
-<p>This is the PDE-constrained objective from §4 made concrete: the loss runs the <strong>same</strong> SIA solver with <span class="math inline">\(A_\theta(T)\)</span> and compares predicted to observed velocities. <code>eqx.filter_value_and_grad</code> differentiates it <strong>through <code>diffeqsolve</code></strong> (through every implicit time step), i.e.&nbsp;it solves the adjoint automatically.</p>
+<p>This is the constrained objective from §4 made concrete: the loss runs the <strong>same</strong> SIA solver with <span class="math inline">\(A_\theta(T)\)</span> and compares predicted to observed velocities. <code>eqx.filter_value_and_grad</code> differentiates the loss <strong>through <code>diffeqsolve</code></strong>. With the checkpointed Diffrax adjoint used in <code>solve_sia</code>, this computes the required reverse-mode sensitivities through the discretized solver.</p>
 <div id="368e16d8" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-07-01T22:12:03.251029Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-07-01T22:12:03.250898Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-07-01T22:12:07.358434Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-07-01T22:12:07.357278Z&quot;}}" data-execution_count="8">
 <details open="" class="code-fold">
 <summary>Code</summary>
@@ -729,9 +731,9 @@ trained in 45.2 s</code></pre>
 </div>
 </div>
 </section>
-<section id="did-we-recover-the-hidden-physics" class="level3">
-<h3 class="anchored" data-anchor-id="did-we-recover-the-hidden-physics">5.6 Did we recover the hidden physics?</h3>
-<p>Plot learned <span class="math inline">\(A_\theta(T)\)</span> against the truth we hid, the analogue of Figure 3 in Bolibar et al.</p>
+<section id="did-we-recover-the-hidden-closure" class="level3">
+<h3 class="anchored" data-anchor-id="did-we-recover-the-hidden-closure">5.6 Did we recover the hidden closure?</h3>
+<p>Plot learned <span class="math inline">\(A_\theta(T)\)</span> against the truth withheld from training, the analogue of Figure 3 in Bolibar et al.</p>
 <div id="82da341a" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-07-01T22:12:52.640302Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-07-01T22:12:52.640168Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-07-01T22:12:53.482057Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-07-01T22:12:53.480842Z&quot;}}" data-execution_count="10">
 <details open="" class="code-fold">
 <summary>Code</summary>
@@ -780,11 +782,12 @@ trained in 45.2 s</code></pre>
 <pre><code>recovery error in A(T):  mean 4.1%   max 6.5%</code></pre>
 </div>
 </div>
-<p>The network started knowing nothing about ice rheology and recovered the hidden temperature dependence to a few percent, purely by reproducing observed velocities through the physics. Over a black-box fit we gained:</p>
+<p>In this synthetic twin experiment, the network was not shown the hidden <span class="math inline">\(A(T)\)</span> law, but it recovered the temperature dependence to a few percent by matching velocities through the solver. That success reflects several sources of structure: the SIA model, the positivity-preserving parameterization, and the limited range of the closure.</p>
+<p>Relative to a black-box fit, this gives us:</p>
 <ul>
-<li><strong>Interpretable</strong>: <span class="math inline">\(A_\theta(T)\)</span> is a curve we can inspect and compare to lab data.</li>
-<li><strong>Physically consistent</strong>: predictions always obey mass conservation and the SIA.</li>
-<li><strong>Data-efficient</strong>: a handful of glaciers sufficed; the PDE does most of the explaining.</li>
+<li><strong>Interpretable closure</strong>: <span class="math inline">\(A_\theta(T)\)</span> is a curve we can inspect and compare to lab or field knowledge.</li>
+<li><strong>Physics-constrained predictions</strong>: predicted velocities are generated by a mass-conserving SIA solver, within the chosen discretization and tolerances.</li>
+<li><strong>Data efficiency in this example</strong>: a handful of synthetic glaciers sufficed because the observations were informative about the closure.</li>
 </ul>
 </section>
 <section id="bonus-robustness-to-noise" class="level3">
@@ -795,11 +798,11 @@ trained in 45.2 s</code></pre>
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Note</span>Implicit regularization
+<span class="screen-reader-only">Note</span>Inductive bias from the embedded PDE
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>The embedded PDE resists overfitting noise <em>without</em> any explicit penalty, and Bolibar et al.&nbsp;report the same. Add 15% noise and retrain:</p>
+<p>The embedded PDE acts as a strong inductive bias, which can reduce overfitting even without an explicit regularization penalty. Add 15% noise and retrain:</p>
 </div>
 </div>
 <div id="a3f10677" class="cell" data-quarto-private-1="{&quot;key&quot;:&quot;execution&quot;,&quot;value&quot;:{&quot;iopub.execute_input&quot;:&quot;2026-07-01T22:12:53.483444Z&quot;,&quot;iopub.status.busy&quot;:&quot;2026-07-01T22:12:53.483319Z&quot;,&quot;iopub.status.idle&quot;:&quot;2026-07-01T22:13:37.993166Z&quot;,&quot;shell.execute_reply&quot;:&quot;2026-07-01T22:13:37.992181Z&quot;}}" data-execution_count="11">
@@ -836,7 +839,7 @@ trained in 45.2 s</code></pre>
 </section>
 <section id="from-the-toy-to-the-real-thing-bolibar-et-al.-2023" class="level2">
 <h2 class="anchored" data-anchor-id="from-the-toy-to-the-real-thing-bolibar-et-al.-2023">6 · From the toy to the real thing: Bolibar et al.&nbsp;(2023)</h2>
-<p><strong>“Universal differential equations for glacier ice flow modelling”</strong>, Geosci. Model Dev. <strong>16</strong>, 6671–6687, <a href="https://doi.org/10.5194/gmd-16-6671-2023">doi:10.5194/gmd-16-6671-2023</a>. Same idea, scaled to real glaciers:</p>
+<p><strong>“Universal differential equations for glacier ice flow modelling”</strong>, Geosci. Model Dev. <strong>16</strong>, 6671–6687, <a href="https://doi.org/10.5194/gmd-16-6671-2023">doi:10.5194/gmd-16-6671-2023</a>. Same broad idea, scaled to real glaciers:</p>
 <table class="caption-top table">
 <thead>
 <tr class="header">
@@ -863,8 +866,8 @@ trained in 45.2 s</code></pre>
 </tr>
 <tr class="even">
 <td>Differentiation</td>
-<td>checkpointed AD (<code>diffrax</code>)</td>
-<td>continuous adjoint (<code>SciMLSensitivity</code>)</td>
+<td>checkpointed reverse-mode AD (<code>diffrax</code>)</td>
+<td>adjoint sensitivities (<code>SciMLSensitivity</code>)</td>
 </tr>
 <tr class="odd">
 <td>Optimizer</td>
@@ -883,17 +886,19 @@ trained in 45.2 s</code></pre>
 </tr>
 </tbody>
 </table>
-<p><strong>Key findings:</strong> - Recovered the prescribed (noisy) <span class="math inline">\(A(T_s)\)</span> across glaciers <strong>without overfitting</strong> and <strong>without explicit regularization</strong>: implicit regularization by the PDE (we reproduced this in §5.7). - <strong>Robust to a deliberately wrong mass-balance forcing</strong>, because velocity is less sensitive to mass-balance error than thickness change is.</p>
-<p><strong>Where it’s going:</strong> learnable basal <strong>sliding</strong>, learnable <strong>mass-balance</strong> laws, seasonal velocity data to separate creep from sliding, and full-Stokes emulators.</p>
+<p><strong>Key findings:</strong> - Recovered the prescribed noisy <span class="math inline">\(A(T_s)\)</span> relationship across glaciers with limited overfitting and without an explicit regularization term; the embedded PDE supplied useful implicit regularization. - Showed robustness in experiments with deliberately perturbed mass-balance forcing, partly because the velocity signal was less sensitive to that error than thickness change.</p>
+<p><strong>Where it is going:</strong> learnable basal <strong>sliding</strong>, learnable <strong>mass-balance</strong> laws, seasonal velocity data to separate creep from sliding, and full-Stokes emulators.</p>
 </section>
 <section id="pitfalls-frontier" class="level2">
 <h2 class="anchored" data-anchor-id="pitfalls-frontier">7 · Pitfalls &amp; frontier</h2>
 <p>A few things to keep in mind, and where the field is heading:</p>
 <ul>
+<li><strong>Identifiability</strong>: the observations must be sensitive to the closure being learned. In real glaciers, creep, sliding, thickness, bed geometry, mass balance, and temperature can compensate for one another.</li>
+<li><strong>Model error</strong>: a synthetic twin removes structural error by construction; field applications have imperfect geometry, forcing, physics, and observations.</li>
 <li><strong>Local minima</strong>: the loss is non-convex; restarts and learning-rate schedules matter.</li>
-<li><strong>Extrapolation</strong>: <span class="math inline">\(A_\theta(T)\)</span> is only trustworthy over the temperature range seen in training; bound the output to physical values.</li>
-<li><strong>Uncertainty</strong>: quantifying uncertainty in the <em>learned function</em> (Bayesian/ensemble) is largely open.</li>
-<li><strong>Informative data</strong>: the observations have to actually constrain the closure you are learning; choosing what and when to observe is part of the design.</li>
+<li><strong>Extrapolation</strong>: <span class="math inline">\(A_\theta(T)\)</span> is most trustworthy over the temperature range represented in training; bounds and physically meaningful output transformations help.</li>
+<li><strong>Uncertainty</strong>: quantifying uncertainty in the <em>learned function</em> (Bayesian/ensemble) remains an active area.</li>
+<li><strong>Discretization and solver choices</strong>: the learned closure is tied to the numerical model used to train it, so resolution, tolerances, and solver design matter.</li>
 </ul>
 </section>
 <section id="references" class="level2">
