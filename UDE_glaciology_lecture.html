@@ -439,7 +439,10 @@ window.Quarto = {
 <p>Suppose we trust the SIA model but do not know how the rate factor <span class="math inline">\(A\)</span> varies with temperature. We can observe surface velocities. Can we learn <span class="math inline">\(A(T)\)</span> from those velocities, <em>through</em> the ice-flow equation?</p>
 </div>
 </div>
-<p>This is the headline experiment of Bolibar et al.&nbsp;(2023) in miniature, run as a <strong>synthetic twin experiment</strong> so we know the truth and can check the result. Because the same model family generates and fits the data, this isolates the closure-learning mechanism; real applications also include structural model error and additional identifiability challenges.</p>
+<ul>
+<li><p>This is the similar experiment of Bolibar et al.&nbsp;(2023) so we know the truth and can check the result.</p></li>
+<li><p>Because the same model family generates and fits the data, this isolates the closure-learning mechanism; real applications also include structural model error and additional identifiability challenges.</p></li>
+</ul>
 <ol type="1">
 <li>Invent a <em>hidden</em> law <span class="math inline">\(A_{\text{true}}(T)\)</span> (warmer <span class="math inline">\(\Rightarrow\)</span> softer ice).</li>
 <li>Generate “observations”: glaciers at different temperatures, evolved a few decades; record surface velocities.</li>
@@ -539,7 +542,7 @@ window.Quarto = {
 <ol type="1">
 <li><strong>Spin up one shared glacier</strong>: evolve from bare bedrock to a quasi-steady starting geometry <span class="math inline">\(H_{\text{init}}\)</span>, used by all eight.</li>
 <li><strong>Pick eight temperatures</strong> (<span class="math inline">\(-25\)</span> to <span class="math inline">\(-3\)</span> °C) and give each its hidden softness <span class="math inline">\(A_{\text{true}}(T)\)</span>, <em>the only thing that differs between glaciers</em>.</li>
-<li><strong>Evolve each for <code>T_OBS</code> = 30 years</strong> under the <strong>identical climate</strong> (the same altitude–mass-balance law). Softer (warmer) ice deforms faster.</li>
+<li><strong>Evolve each for <code>T_OBS</code> = 30 years</strong> under the same SMB (for simplicity). Softer (warmer) ice deforms faster.</li>
 <li><strong>Record surface velocities</strong> <span class="math inline">\(U_{\text{obs}}\)</span>: these are the training targets.</li>
 </ol>
 <p>The training data are velocities only. The hidden <span class="math inline">\(A_{\text{true}}(T)\)</span> is not given to the optimizer; it is kept aside for the final check.</p>
@@ -782,7 +785,6 @@ trained in 45.2 s</code></pre>
 <pre><code>recovery error in A(T):  mean 4.1%   max 6.5%</code></pre>
 </div>
 </div>
-<p>In this synthetic twin experiment, the network was not shown the hidden <span class="math inline">\(A(T)\)</span> law, but it recovered the temperature dependence to a few percent by matching velocities through the solver. That success reflects several sources of structure: the SIA model, the positivity-preserving parameterization, and the limited range of the closure.</p>
 <p>Relative to a black-box fit, this gives us:</p>
 <ul>
 <li><strong>Interpretable closure</strong>: <span class="math inline">\(A_\theta(T)\)</span> is a curve we can inspect and compare to lab or field knowledge.</li>
@@ -894,7 +896,7 @@ trained in 45.2 s</code></pre>
 <p>A few things to keep in mind, and where the field is heading:</p>
 <ul>
 <li><strong>Identifiability</strong>: the observations must be sensitive to the closure being learned. In real glaciers, creep, sliding, thickness, bed geometry, mass balance, and temperature can compensate for one another.</li>
-<li><strong>Model error</strong>: a synthetic twin removes structural error by construction; field applications have imperfect geometry, forcing, physics, and observations.</li>
+<li><strong>Model error</strong>: this example removed structural error by construction; field applications have imperfect geometry, forcing, physics, and observations.</li>
 <li><strong>Local minima</strong>: the loss is non-convex; restarts and learning-rate schedules matter.</li>
 <li><strong>Extrapolation</strong>: <span class="math inline">\(A_\theta(T)\)</span> is most trustworthy over the temperature range represented in training; bounds and physically meaningful output transformations help.</li>
 <li><strong>Uncertainty</strong>: quantifying uncertainty in the <em>learned function</em> (Bayesian/ensemble) remains an active area.</li>

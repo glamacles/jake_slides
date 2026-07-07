@@ -255,7 +255,7 @@ window.Quarto = {
 <section id="the-problem-a-gradient-through-a-constraint" class="level2">
 <h2 class="anchored" data-anchor-id="the-problem-a-gradient-through-a-constraint">1 · The problem: a gradient through a constraint</h2>
 <ul>
-<li>A scalar loss <span class="math inline">\(L(u,   heta)\in\mathbb{R}\)</span> depends on parameters <span class="math inline">\(\theta\in\mathbb{R}^p\)</span> through a state <span class="math inline">\(u\in\mathbb{R}^n\)</span>.</li>
+<li>A scalar loss <span class="math inline">\(L(u,   \theta)\in\mathbb{R}\)</span> depends on parameters <span class="math inline">\(\theta\in\mathbb{R}^p\)</span> through a state <span class="math inline">\(u\in\mathbb{R}^n\)</span>.</li>
 <li>The state <span class="math inline">\(u\)</span> is not usually given by a closed-form formula. It is defined by a constraint:</li>
 </ul>
 <p><span class="math display">\[g(u,\theta) = 0,\qquad g:\mathbb{R}^n\times\mathbb{R}^p\to\mathbb{R}^n \quad\Longrightarrow\quad u = u(\theta).\]</span></p>
@@ -294,14 +294,14 @@ Important
 <p><strong>Step 1: chain rule.</strong> <span class="math inline">\(L\)</span> depends on <span class="math inline">\(\theta\)</span> directly and through <span class="math inline">\(u(\theta)\)</span>:</p>
 <p><span class="math display">\[\frac{dL}{d\theta} = \frac{\partial L}{\partial\theta} + \frac{\partial L}{\partial u}\,\frac{du}{d\theta},
 \qquad \frac{\partial L}{\partial u}\in\mathbb{R}^{1\times n},\quad \frac{du}{d\theta}\in\mathbb{R}^{n\times p}.\]</span></p>
-<p>The hard part is <span class="math inline">\(du/d\theta\)</span>: how the state responds to the parameters.</p>
+<p>The hard part is <span class="math inline">\(du/d\theta\)</span>: how the state responds to the parameters. This relationship is often defined implicitly via the constraint.</p>
 <p><strong>Step 2: differentiate the constraint.</strong> Since <span class="math inline">\(g(u(\theta),\theta)=0\)</span> for all <span class="math inline">\(\theta\)</span>:</p>
 <p><span class="math display">\[\frac{\partial g}{\partial u}\frac{du}{d\theta} + \frac{\partial g}{\partial\theta} = 0
 \quad\Longrightarrow\quad
 \frac{du}{d\theta} = -\Big(\frac{\partial g}{\partial u}\Big)^{-1}\frac{\partial g}{\partial\theta}.\]</span></p>
 <p><strong>Step 3: substitute back.</strong></p>
 <p><span class="math display">\[\frac{dL}{d\theta} = \frac{\partial L}{\partial\theta} - \frac{\partial L}{\partial u}\Big(\frac{\partial g}{\partial u}\Big)^{-1}\frac{\partial g}{\partial\theta}.\]</span></p>
-<p>The gradient is explicit; all that remains is <em>how</em> to evaluate the middle product. The order of operations decides the cost.</p>
+<p>The gradient is explicit; all that remains is <em>how</em> to evaluate the middle product. The order of operations matters!</p>
 <section id="option-1-direct-tangent-linear-forward" class="level3">
 <h3 class="anchored" data-anchor-id="option-1-direct-tangent-linear-forward">Option 1: direct / tangent-linear (forward)</h3>
 <p>Build the sensitivity <span class="math inline">\(du/d\theta\)</span> (size <span class="math inline">\(n\times p\)</span>) one column at a time. Column <span class="math inline">\(j\)</span> (how the state responds to parameter <span class="math inline">\(\theta_j\)</span>) is the linear solve</p>
@@ -328,7 +328,7 @@ Important
 <li>That is the <strong>adjoint equation</strong>: one transposed solve, independent of the number of parameters <span class="math inline">\(p\)</span>.</li>
 <li>Then <span class="math display">\[\frac{dL}{d\theta} = \frac{\partial L}{\partial\theta} - \lambda^{\top}\frac{\partial g}{\partial\theta}.\]</span></li>
 </ul>
-<p>The final gradient still has <span class="math inline">\(p\)</span> entries, so accumulating or storing it is not literally free. The key saving is that the expensive linearized state solve is done once, not once per parameter.</p>
+<p>The final gradient still has <span class="math inline">\(p\)</span> entries, so accumulating or storing it still involves more work as the number of parameters grows. However, this involves only one expensive linear solve!</p>
 <blockquote class="blockquote">
 <p>Propagates a cotangent <em>backward</em>: this is <em>reverse mode</em>.</p>
 </blockquote>
@@ -390,7 +390,7 @@ Important
 <h2 class="anchored" data-anchor-id="the-same-equation-everywhere-solvers-and-neural-networks">3 · The same equation everywhere: solvers and neural networks</h2>
 <ul>
 <li>Nothing above required <span class="math inline">\(g\)</span> to be a PDE. It can represent any differentiable computation written as constraints.</li>
-<li>Any computation that builds <span class="math inline">\(u\)</span> from <span class="math inline">\(\theta\)</span> through a sequence of steps has a discrete adjoint. Reverse-mode AD is the automatic construction of that adjoint solve.</li>
+<li>For example, we can compute the adjoint for a sequence of discrete steps:</li>
 </ul>
 <section id="example-a-a-time-stepping-solver" class="level3">
 <h3 class="anchored" data-anchor-id="example-a-a-time-stepping-solver">Example A: a time-stepping solver</h3>
@@ -561,7 +561,12 @@ I &amp; -f'^{\top}_0 &amp; &amp; \\
 \Big(\frac{\partial L}{\partial x_k}\Big)^{\!\top}
 +
 \Big(\frac{\partial f_k}{\partial x_k}\Big)^{\!\top}\lambda_{k+1}.\]</span></p>
-<p>More complex networks fit the same framework. A chain gives a block lower-bidiagonal constraint Jacobian. A general acyclic computation graph gives a <strong>sparse block lower-triangular</strong> Jacobian after a topological ordering. Backprop is then reverse topological substitution: each node sends transpose-Jacobian contributions to its parents, and contributions from multiple children add. Skip connections, branches, merges, and shared weights change the sparsity pattern, not the principle.</p>
+<ul>
+<li>More complex networks fit the same framework:</li>
+</ul>
+<blockquote class="blockquote">
+<p>A chain gives a block lower-bidiagonal constraint Jacobian. A general acyclic computation graph gives a <strong>sparse block lower-triangular</strong> Jacobian after a topological ordering. Backprop is then reverse topological substitution: each node sends transpose-Jacobian contributions to its parents, and contributions from multiple children add. Skip connections, branches, merges, and shared weights change the sparsity pattern, not the principle.</p>
+</blockquote>
 <p>For example, a residual block</p>
 <p><span class="math display">\[x_{k+1}=x_k+F_k(x_k,\theta_k)\]</span></p>
 <p>has the backward update</p>
@@ -620,7 +625,7 @@ I &amp; -f'^{\top}_0 &amp; &amp; \\
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Important</span>Punchline
+<span class="screen-reader-only">Important</span>Takeaway
 </div>
 </div>
 <div class="callout-body-container callout-body">
