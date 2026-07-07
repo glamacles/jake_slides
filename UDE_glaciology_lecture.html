@@ -331,7 +331,6 @@ window.Quarto = {
 </section>
 <section id="the-ude-idea-training-as-differential-equation-constrained-optimization" class="level2">
 <h2 class="anchored" data-anchor-id="the-ude-idea-training-as-differential-equation-constrained-optimization">4 · The UDE idea: training as differential-equation-constrained optimization</h2>
-<p>This is the conceptual heart of the lecture — the bridge from ordinary ML to physics.</p>
 <p><strong>Ordinary ML</strong> minimizes a loss directly over the network’s prediction:</p>
 <p><span class="math display">\[\min_\theta\; L(\mathcal{U}_\theta).\]</span></p>
 <p><strong>A UDE</strong> minimizes a similar misfit, but the prediction is defined <em>through the solution of a differential equation</em>. The loss depends on the state <span class="math inline">\(u\)</span>, and <span class="math inline">\(u\)</span> is constrained by the model equations:</p>
@@ -378,7 +377,11 @@ window.Quarto = {
 </tr>
 </tbody>
 </table>
-<p>To take a gradient step we need <span class="math inline">\(\nabla_\theta L\)</span>, but <span class="math inline">\(L\)</span> depends on <span class="math inline">\(\theta\)</span> <em>through the constrained solution</em> <span class="math inline">\(u\)</span>. Differentiating through that constraint is the same adjoint/reverse-mode idea used in inverse modelling (MacAyeal, 1993). In differentiable programming, <code>jax.grad</code> can trace the numerical solve and compute the required vector-Jacobian products without us deriving them by hand.</p>
+<ul>
+<li>To take a gradient step we need <span class="math inline">\(\nabla_\theta L\)</span>, but <span class="math inline">\(L\)</span> depends on <span class="math inline">\(\theta\)</span> <em>through the constrained solution</em> <span class="math inline">\(u\)</span>.</li>
+<li>Differentiating through that constraint is the same adjoint/reverse-mode idea used in inverse modelling (MacAyeal, 1993).</li>
+<li>In differentiable programming, <code>jax.grad</code> can trace the numerical solve and compute the required vector-Jacobian products without us deriving them by hand.</li>
+</ul>
 <section id="hard-vs.-soft-constraints-the-contrast-with-pinns" class="level3">
 <h3 class="anchored" data-anchor-id="hard-vs.-soft-constraints-the-contrast-with-pinns">Hard vs.&nbsp;soft constraints: the contrast with PINNs</h3>
 <p>You have likely already met <strong>PINNs</strong>, which represent the <em>solution</em> with a network and add the PDE residual to the loss as a penalty. In the language above, that is a <strong>penalty method</strong>: the physics is encouraged by the objective, so it acts as a <strong>soft constraint</strong>.</p>
