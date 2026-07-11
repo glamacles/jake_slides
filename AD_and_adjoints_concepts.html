@@ -190,8 +190,6 @@ window.Quarto = {
   <li><a href="#the-problem-a-gradient-through-a-constraint" id="toc-the-problem-a-gradient-through-a-constraint" class="nav-link active" data-scroll-target="#the-problem-a-gradient-through-a-constraint">1 · The problem: a gradient through a constraint</a></li>
   <li><a href="#two-ways-to-get-the-gradient" id="toc-two-ways-to-get-the-gradient" class="nav-link" data-scroll-target="#two-ways-to-get-the-gradient">2 · Two ways to get the gradient</a></li>
   <li><a href="#the-same-equation-everywhere-solvers-and-neural-networks" id="toc-the-same-equation-everywhere-solvers-and-neural-networks" class="nav-link" data-scroll-target="#the-same-equation-everywhere-solvers-and-neural-networks">3 · The same equation everywhere: solvers and neural networks</a></li>
-  <li><a href="#forward-mode-the-same-system-the-other-direction" id="toc-forward-mode-the-same-system-the-other-direction" class="nav-link" data-scroll-target="#forward-mode-the-same-system-the-other-direction">4 · Forward mode: the same system, the other direction</a></li>
-  <li><a href="#checkpointing-differentiating-through-long-solves" id="toc-checkpointing-differentiating-through-long-solves" class="nav-link" data-scroll-target="#checkpointing-differentiating-through-long-solves">5 · Checkpointing: differentiating through long solves</a></li>
   </ul>
 </nav>
 </nav>
@@ -389,7 +387,7 @@ Important
 <section id="the-same-equation-everywhere-solvers-and-neural-networks" class="level2">
 <h2 class="anchored" data-anchor-id="the-same-equation-everywhere-solvers-and-neural-networks">3 · The same equation everywhere: solvers and neural networks</h2>
 <ul>
-<li>Nothing above required <span class="math inline">\(g\)</span> to be a PDE. It can represent any differentiable computation written as constraints.</li>
+<li>Nothing above required <span class="math inline">\(g\)</span> to be a PDE. It can represent any differentiable computation written as a constraint.</li>
 <li>For example, we can compute the adjoint for a sequence of discrete steps:</li>
 </ul>
 <section id="example-a-a-time-stepping-solver" class="level3">
@@ -528,7 +526,7 @@ dL/dtheta accumulates one contribution per step (theta is shared):
 </div>
 </section>
 <section id="example-b-a-neural-network-is-the-same-problem" class="level3">
-<h3 class="anchored" data-anchor-id="example-b-a-neural-network-is-the-same-problem">Example B: a neural network is the same problem</h3>
+<h3 class="anchored">Example B: a neural network is the same problem</h3>
 <p>The same story, with “time step” → “layer.” A feedforward network is a composition,</p>
 <p><span class="math display">\[x_0 = \text{input},\qquad x_{k+1} = f_k(x_k,\theta_k),\qquad L = \ell(x_n),\qquad x_k\in\mathbb{R}^{d_k}.\]</span></p>
 <p>Treat each layer’s output as an unknown and each layer as a constraint <span class="math inline">\(g_{k+1} = x_{k+1}-f_k(x_k,\theta_k)=0\)</span>. The adjoint of the <em>whole network</em> is again one big transposed solve. For a plain chain of layers, <span class="math inline">\(\partial g/\partial x\)</span> is block lower-bidiagonal, with <span class="math inline">\(f'_k\equiv\partial f_k/\partial x_k\)</span>:</p>
@@ -564,9 +562,20 @@ I &amp; -f'^{\top}_0 &amp; &amp; \\
 <ul>
 <li>More complex networks fit the same framework:</li>
 </ul>
-<blockquote class="blockquote">
-<p>A chain gives a block lower-bidiagonal constraint Jacobian. A general acyclic computation graph gives a <strong>sparse block lower-triangular</strong> Jacobian after a topological ordering. Backprop is then reverse topological substitution: each node sends transpose-Jacobian contributions to its parents, and contributions from multiple children add. Skip connections, branches, merges, and shared weights change the sparsity pattern, not the principle.</p>
-</blockquote>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Generalizations
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li>A chain gives a block lower-bidiagonal constraint Jacobian.</li>
+<li>A general acyclic computation graph gives a <strong>sparse block lower-triangular</strong> Jacobian after a topological ordering.</li>
+</ul>
 <p>For example, a residual block</p>
 <p><span class="math display">\[x_{k+1}=x_k+F_k(x_k,\theta_k)\]</span></p>
 <p>has the backward update</p>
@@ -638,8 +647,6 @@ I &amp; -f'^{\top}_0 &amp; &amp; \\
 <p>Reverse-mode AD automates this: each operation supplies its local derivative rule, and AD chains those rules into the whole-model gradient.</p>
 </div>
 </div>
-</section>
-</section>
 <section id="forward-mode-the-same-system-the-other-direction" class="level2">
 <h2 class="anchored" data-anchor-id="forward-mode-the-same-system-the-other-direction">4 · Forward mode: the same system, the other direction</h2>
 <p>Reverse mode gave the whole gradient in one backward pass. Forward mode is the other way to use the same system, and it wins in the opposite regime. Which mode to reach for is set by the shape of the Jacobian:</p>
@@ -828,6 +835,10 @@ jax.grad == jax.grad(jax.checkpoint(...)): True</code></pre>
 <p><em>Companion to the UDE glaciology lecture.</em></p>
 
 
+</section>
+</section>
+</div>
+</div>
 </section>
 </section>
 
